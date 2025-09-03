@@ -1,0 +1,31 @@
+version: 1
+
+service:
+  name: "my-app-otel-test"
+  version: 1.0.0
+
+connections:
+  dynamodb:
+    local: false
+    tables:
+    - id: table_1
+      name: MyTable
+      partitionKeyName: "documentNumber"
+      sortKeyName:  "date"
+
+api:
+  endpoints:
+    - route: /api/person
+      method: post
+      actionId: mock_mirror
+
+actions:
+  - id: create_person
+    type: dynamodb
+    dynamodb:
+      tableId: table_1
+      command: create
+      partitionKeyValue: "{{bodyContext.documentNumber}}"
+      sortKeyValue: "{{bodyContext.documentNumber}}"
+
+    
