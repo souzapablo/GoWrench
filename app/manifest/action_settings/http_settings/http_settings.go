@@ -5,9 +5,9 @@ import (
 )
 
 type HttpSettings struct {
-	Request  *HttpRequestSetting     `yaml:"request"`
-	Response *HttpResponseSettings   `yaml:"response"`
-	Mock     *HttpRequestMockSetting `yaml:"mock"`
+	Request  *HttpRequestSetting      `yaml:"request"`
+	Response *HttpResponseSettings    `yaml:"response"`
+	Mock     *HttpRequestMockSettings `yaml:"mock"`
 }
 
 func (setting HttpSettings) Valid() validation.ValidateResult {
