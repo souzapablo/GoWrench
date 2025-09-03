@@ -16,6 +16,7 @@ func Valid() validation.ValidateResult {
 	result.Append(idempCrossValidation(appSetting))
 	result.Append(rateLimitCrossValidation(appSetting))
 	result.Append(endpointSettingsCrossValidation(appSetting))
+	result.Append(dynamodbCrossValidation(appSetting))
 
 	if len(appSetting.Actions) > 0 {
 		hasIds := toHasIdSlice(appSetting.Actions)
