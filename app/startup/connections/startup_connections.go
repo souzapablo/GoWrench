@@ -1,29 +1,30 @@
 package connections
 
 import (
+	"context"
+	"wrench/app"
 	"wrench/app/manifest/application_settings"
 )
 
-func LoadConnections() error {
-	app := application_settings.ApplicationSettingsStatic
+var ErrorLoadConnections []error
 
-	if app.Connections == nil {
-		return nil
+func LoadConnections(ctx context.Context) {
+	settings := application_settings.ApplicationSettingsStatic
+
+	if settings.Connections == nil {
+		return
 	}
 
-	err := loadConnectionNats(app.Connections.Nats)
+	addIfError(loadConnectionNats(settings.Connections.Nats))
+	addIfError(loadJetStreams(settings.Actions))
+	addIfError(loadConnectionsKafka(settings.Connections.Kafka))
+	addIfError(loadConnectionsRedis(settings.Connections.Redis))
+	addIfError(loadConnectionsDynamodb(ctx, settings.Connections.DynamoDb))
+}
 
-	if err == nil {
-		err = loadJetStreams(app.Actions)
+func addIfError(err error) {
+	if err != nil {
+		app.LogError2("Error connections: %v", err)
+		ErrorLoadConnections = append(ErrorLoadConnections, err)
 	}
-
-	if err == nil {
-		err = loadConnectionsKafka(app.Connections.Kafka)
-	}
-
-	if err == nil {
-		err = loadConnectionsRedis(app.Connections.Redis)
-	}
-
-	return err
 }
