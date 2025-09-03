@@ -4,13 +4,13 @@ import (
 	"wrench/app/manifest/validation"
 )
 
-type HttpSetting struct {
+type HttpSettings struct {
 	Request  *HttpRequestSetting     `yaml:"request"`
 	Response *HttpResponseSettings   `yaml:"response"`
 	Mock     *HttpRequestMockSetting `yaml:"mock"`
 }
 
-func (setting HttpSetting) Valid() validation.ValidateResult {
+func (setting HttpSettings) Valid() validation.ValidateResult {
 	var result validation.ValidateResult
 
 	if setting.Request == nil && setting.Mock == nil {
@@ -32,7 +32,7 @@ func (setting HttpSetting) Valid() validation.ValidateResult {
 	return result
 }
 
-func (setting HttpSetting) ValidTypeActionTypeHttpRequest(result *validation.ValidateResult) {
+func (setting HttpSettings) ValidTypeActionTypeHttpRequest(result *validation.ValidateResult) {
 
 	if setting.Request == nil {
 		result.AddError("actions.http.request is required when type is httpRequest")
@@ -43,7 +43,7 @@ func (setting HttpSetting) ValidTypeActionTypeHttpRequest(result *validation.Val
 	}
 }
 
-func (setting HttpSetting) ValidTypeActionTypeHttpRequestMock(result *validation.ValidateResult) {
+func (setting HttpSettings) ValidTypeActionTypeHttpRequestMock(result *validation.ValidateResult) {
 	if setting.Mock == nil {
 		result.AddError("actions.http.mock is required when type is httpRequestMock")
 	}

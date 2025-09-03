@@ -15,7 +15,7 @@ import (
 type ActionSettings struct {
 	Id      string                           `yaml:"id"`
 	Type    ActionType                       `yaml:"type"`
-	Http    *http_settings.HttpSetting       `yaml:"http"`
+	Http    *http_settings.HttpSettings      `yaml:"http"`
 	SNS     *sns_settings.SnsSettings        `yaml:"sns"`
 	Trigger *trigger_settings.TriggerSetting `yaml:"trigger"`
 	File    *file_settings.FileSettings      `yaml:"file"`
