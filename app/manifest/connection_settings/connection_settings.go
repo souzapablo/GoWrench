@@ -5,10 +5,10 @@ import (
 )
 
 type ConnectionSettings struct {
-	Nats     []*NatsConnectionSettings     `yaml:"nats"`
-	Kafka    []*KafkaConnectionSettings    `yaml:"kafka"`
-	Redis    []*RedisConnectionSettings    `yaml:"redis"`
-	DynamoDb []*DynamodbConnectionSettings `yaml:"dynamodb"`
+	Nats     []*NatsConnectionSettings   `yaml:"nats"`
+	Kafka    []*KafkaConnectionSettings  `yaml:"kafka"`
+	Redis    []*RedisConnectionSettings  `yaml:"redis"`
+	DynamoDb *DynamodbConnectionSettings `yaml:"dynamodb"`
 }
 
 func (settings *ConnectionSettings) Valid() validation.ValidateResult {
@@ -32,10 +32,8 @@ func (settings *ConnectionSettings) Valid() validation.ValidateResult {
 		}
 	}
 
-	if len(settings.DynamoDb) > 0 {
-		for _, validable := range settings.DynamoDb {
-			result.AppendValidable(validable)
-		}
+	if settings.DynamoDb != nil {
+		result.AppendValidable(settings.DynamoDb)
 	}
 
 	return result
