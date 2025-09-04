@@ -2,6 +2,7 @@ package action_settings
 
 import (
 	"fmt"
+	"wrench/app/manifest/action_settings/dynamodb_settings"
 	"wrench/app/manifest/action_settings/file_settings"
 	"wrench/app/manifest/action_settings/func_settings"
 	"wrench/app/manifest/action_settings/http_settings"
@@ -13,16 +14,17 @@ import (
 )
 
 type ActionSettings struct {
-	Id      string                           `yaml:"id"`
-	Type    ActionType                       `yaml:"type"`
-	Http    *http_settings.HttpSettings      `yaml:"http"`
-	SNS     *sns_settings.SnsSettings        `yaml:"sns"`
-	Trigger *trigger_settings.TriggerSetting `yaml:"trigger"`
-	File    *file_settings.FileSettings      `yaml:"file"`
-	Nats    *nats_settings.NatsSettings      `yaml:"nats"`
-	Kafka   *kafka_settings.KafkaSettings    `yaml:"kafka"`
-	Func    *func_settings.FuncSettings      `yaml:"func"`
-	Body    *BodyActionSettings              `yaml:"body"`
+	Id       string                              `yaml:"id"`
+	Type     ActionType                          `yaml:"type"`
+	Http     *http_settings.HttpSettings         `yaml:"http"`
+	SNS      *sns_settings.SnsSettings           `yaml:"sns"`
+	Trigger  *trigger_settings.TriggerSetting    `yaml:"trigger"`
+	File     *file_settings.FileSettings         `yaml:"file"`
+	Nats     *nats_settings.NatsSettings         `yaml:"nats"`
+	Kafka    *kafka_settings.KafkaSettings       `yaml:"kafka"`
+	Func     *func_settings.FuncSettings         `yaml:"func"`
+	DynamoDb *dynamodb_settings.DynamodbSettings `yaml:"dynamodb"`
+	Body     *BodyActionSettings                 `yaml:"body"`
 }
 
 func (setting *ActionSettings) GetId() string {
