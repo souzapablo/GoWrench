@@ -9,7 +9,7 @@ connections:
     local: false
     tables:
     - id: table_1
-      name: MyTable
+      name: test
       partitionKeyName: "documentNumber"
       sortKeyName:  "date"
 
@@ -17,7 +17,7 @@ api:
   endpoints:
     - route: /api/person
       method: post
-      actionId: mock_mirror
+      actionId: create_person
 
 actions:
   - id: create_person
