@@ -63,10 +63,16 @@ func (chain *Chain) BuildChain(settings *settings.ApplicationSettings) {
 
 		if len(endpoint.ActionID) > 0 {
 			action, _ := settings.GetActionById(endpoint.ActionID)
+			if action == nil {
+				continue
+			}
 			currentHandler = buildChainToAction(currentHandler, settings, action)
 		} else {
 			for _, actionId := range endpoint.FlowActionID {
 				action, _ := settings.GetActionById(actionId)
+				if action == nil {
+					continue
+				}
 				currentHandler = buildChainToAction(currentHandler, settings, action)
 			}
 		}
@@ -78,6 +84,7 @@ func (chain *Chain) BuildChain(settings *settings.ApplicationSettings) {
 }
 
 func buildChainToAction(currentHandler Handler, settings *settings.ApplicationSettings, action *action_settings.ActionSettings) Handler {
+
 	if action.Trigger != nil && action.Trigger.Before != nil {
 		httpContractMapHandler := new(HttpContractMapHandler)
 
