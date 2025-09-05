@@ -7,6 +7,8 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/sns/types"
 
@@ -24,27 +26,58 @@ func loadConnectionsDynamodb(ctx context.Context, dynamodbConn *connection_setti
 
 	var err error
 
-	for _, table := range dynamodbConn.Tables {
-		var connection = new(DynamoDbTableConnection)
-		connection.TableName = table.Name
+	if dynamodbConn != nil {
+		dynamoDbTableConnections = make(map[string]*DynamoDbTableConnection)
+		for _, table := range dynamodbConn.Tables {
+			var sdkConfig aws.Config
+			var awsErr error
 
-		_, err := connection.DynamoDbClient.DescribeTable(
-			ctx, &dynamodb.DescribeTableInput{TableName: aws.String(connection.TableName)},
-		)
-		if err != nil {
-			var notFoundEx *types.ResourceNotFoundException
-			if errors.As(err, &notFoundEx) {
-				log.Printf("Table %v does not exist.\n", connection.TableName)
+			if dynamodbConn.Local {
+				loaders := []func(*config.LoadOptions) error{config.WithRegion(dynamodbConn.LocalAwsRegion)}
+				loaders = append(loaders,
+					config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
+						dynamodbConn.LocalAwsAccessKeyId,
+						dynamodbConn.LocalAwsSecretAccessKey,
+						"",
+					)),
+				)
+				sdkConfig, awsErr = config.LoadDefaultConfig(ctx, loaders...)
 			} else {
-				log.Printf("Couldn't determine existence of table %v. Here's why: %v\n", connection.TableName, err)
+				sdkConfig, awsErr = config.LoadDefaultConfig(ctx)
 			}
-		}
 
-		if err != nil {
-			return err
-		}
+			if awsErr != nil {
+				return awsErr
+			}
 
-		dynamoDbTableConnections[table.Id] = connection
+			dynamoDbClient := dynamodb.NewFromConfig(sdkConfig, func(o *dynamodb.Options) {
+				if dynamodbConn.Local {
+					o.BaseEndpoint = aws.String(dynamodbConn.LocalEndpoint)
+				}
+			})
+
+			var connection = new(DynamoDbTableConnection)
+			connection.TableName = table.Name
+			connection.DynamoDbClient = dynamoDbClient
+
+			_, err := connection.DynamoDbClient.DescribeTable(
+				ctx, &dynamodb.DescribeTableInput{TableName: aws.String(connection.TableName)},
+			)
+			if err != nil {
+				var notFoundEx *types.ResourceNotFoundException
+				if errors.As(err, &notFoundEx) {
+					log.Printf("Table %v does not exist.\n", connection.TableName)
+				} else {
+					log.Printf("Couldn't determine existence of table %v. Here's why: %v\n", connection.TableName, err)
+				}
+			}
+
+			if err != nil {
+				return err
+			}
+
+			dynamoDbTableConnections[table.Id] = connection
+		}
 	}
 
 	return err

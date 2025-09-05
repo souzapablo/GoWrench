@@ -6,7 +6,12 @@ import (
 )
 
 type DynamodbConnectionSettings struct {
-	Local  bool                     `yaml:"local"`
+	Local                   bool   `yaml:"local"`
+	LocalEndpoint           string `yaml:"localEndpoint"`
+	LocalAwsAccessKeyId     string `yaml:"localAwsAccessKeyId"`
+	LocalAwsSecretAccessKey string `yaml:"localAwsSecretAccessKey"`
+	LocalAwsRegion          string `yaml:"localAwsRegion"`
+
 	Tables []*DynamodbTableSettings `yaml:"tables"`
 }
 

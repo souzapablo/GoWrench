@@ -6,7 +6,11 @@ service:
 
 connections:
   dynamodb:
-    local: false
+    local: true
+    localEndpoint: "http://localhost:4566"
+    localAwsAccessKeyId: dummy
+    localAwsSecretAccessKey: dummy
+    localAwsRegion: us-east-1
     tables:
     - id: table_1
       name: test
