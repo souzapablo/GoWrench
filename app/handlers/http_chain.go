@@ -5,6 +5,7 @@ import (
 	action_settings "wrench/app/manifest/action_settings"
 	settings "wrench/app/manifest/application_settings"
 	"wrench/app/manifest_cross_funcs"
+	"wrench/app/startup/connections"
 )
 
 var ChainStatic *Chain = new(Chain)
@@ -155,6 +156,20 @@ func buildChainToAction(currentHandler Handler, settings *settings.ApplicationSe
 		kafkaProducerHandler.ActionSettings = action
 		currentHandler.SetNext(kafkaProducerHandler)
 		currentHandler = kafkaProducerHandler
+	}
+
+	if action.Type == action_settings.ActionTypeDynamoDb {
+		dynamoDbHandler := new(DynamoDbHandler)
+		dynamoDbHandler.ActionSettings = action
+
+		if action.DynamoDb != nil {
+			tableConn, _ := connections.GetDynamoDbTableConnection(action.DynamoDb.TableId)
+			dynamoDbHandler.TableConnection = tableConn
+			dynamoDbHandler.TableSettings, _ = manifest_cross_funcs.GetDynamodbTableSettings(action.DynamoDb.TableId)
+		}
+
+		currentHandler.SetNext(dynamoDbHandler)
+		currentHandler = dynamoDbHandler
 	}
 
 	if action.Trigger != nil && action.Trigger.After != nil {
