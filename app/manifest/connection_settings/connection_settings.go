@@ -69,5 +69,16 @@ func (settings *ConnectionSettings) Merge(toMerge *ConnectionSettings) error {
 		}
 	}
 
+	if toMerge.DynamoDb != nil && len(toMerge.DynamoDb.Tables) > 0 {
+		if settings.DynamoDb == nil {
+			settings.DynamoDb = toMerge.DynamoDb
+		} else {
+
+			if len(toMerge.DynamoDb.Tables) > 0 {
+				settings.DynamoDb.Tables = append(settings.DynamoDb.Tables, toMerge.DynamoDb.Tables...)
+			}
+		}
+	}
+
 	return nil
 }
