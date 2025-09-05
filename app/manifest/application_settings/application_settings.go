@@ -2,6 +2,7 @@ package application_settings
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"wrench/app/manifest/action_settings"
 	"wrench/app/manifest/api_settings"
@@ -37,7 +38,7 @@ func (settings *ApplicationSettings) GetActionById(actionId string) (*action_set
 		}
 	}
 
-	return nil, errors.New("action not found")
+	return nil, fmt.Errorf("action %v not found", actionId)
 }
 
 func (settings *ApplicationSettings) GetEndpointByActionId(actionId string) (*api_settings.EndpointSettings, error) {
@@ -47,7 +48,7 @@ func (settings *ApplicationSettings) GetEndpointByActionId(actionId string) (*ap
 		}
 	}
 
-	return nil, errors.New("endpoint not found")
+	return nil, fmt.Errorf("endpoint %v not found", actionId)
 }
 
 func (settings *ApplicationSettings) Valid() validation.ValidateResult {
