@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -32,6 +33,7 @@ type dynamodbCommandResult struct {
 	HttpStatusCode int
 	ErrorMessage   string
 	Error          error
+	Body           []byte
 }
 
 func (result *dynamodbCommandResult) IsSuccess() bool {
@@ -54,11 +56,24 @@ func (handler *DynamoDbHandler) Do(ctx context.Context, wrenchContext *contexts.
 		} else {
 			var result dynamodbCommandResult
 			if handler.ActionSettings.DynamoDb.Command == dynamodb_settings.DynamoDbCommandCreate {
-				result = handler.commandCreate(ctx, wrenchContext, bodyContext, item)
+				result = handler.createCommand(ctx, wrenchContext, bodyContext, item)
+			} else if handler.ActionSettings.DynamoDb.Command == dynamodb_settings.DynamoDbCommandUpdate {
+				result = handler.updateCommand(ctx, wrenchContext, bodyContext, item)
+			} else if handler.ActionSettings.DynamoDb.Command == dynamodb_settings.DynamoDbCommandCreateOrUpdate {
+				result = handler.createOrUpdateCommand(ctx, item)
+			} else if handler.ActionSettings.DynamoDb.Command == dynamodb_settings.DynamoDbCommandDelete {
+				result = handler.deleteCommand(ctx, wrenchContext, bodyContext)
+			} else if handler.ActionSettings.DynamoDb.Command == dynamodb_settings.DynamoDbCommandGet {
+				result = handler.getCommand(ctx, wrenchContext, bodyContext)
+			} else {
+				result.ErrorMessage = fmt.Sprintf("The command %v is not implemented", handler.ActionSettings.DynamoDb.Command)
+				result.Error = errors.New(result.ErrorMessage)
+				result.HttpStatusCode = 500
 			}
 
 			if result.IsSuccess() {
 				bodyContext.HttpStatusCode = result.HttpStatusCode
+				bodyContext.SetBodyAction(handler.ActionSettings, result.Body)
 			} else {
 				handler.setError(wrenchContext, bodyContext, span, result.HttpStatusCode, result.ErrorMessage, result.Error)
 			}
@@ -87,12 +102,21 @@ func (handler *DynamoDbHandler) metricRecord(ctx context.Context, duration float
 	)
 }
 
-func (handler *DynamoDbHandler) commandCreate(ctx context.Context, wrenchContext *contexts.WrenchContext, bodyContext *contexts.BodyContext, item map[string]types.AttributeValue) dynamodbCommandResult {
+func (handler *DynamoDbHandler) createCommand(ctx context.Context, wrenchContext *contexts.WrenchContext, bodyContext *contexts.BodyContext, item map[string]types.AttributeValue) dynamodbCommandResult {
 	var result dynamodbCommandResult
 
-	itemExist, err := handler.getItem(ctx, wrenchContext, bodyContext)
+	keys, err := handler.getKeyFromItem(item)
 
-	if itemExist != nil || err != nil {
+	if err != nil {
+		result.ErrorMessage = fmt.Sprintf("Error to get key. Here's why: %v\n", err)
+		result.Error = err
+		result.HttpStatusCode = 500
+		return result
+	}
+
+	itemExist, err := handler.getItem(ctx, wrenchContext, bodyContext, keys)
+
+	if (itemExist != nil && itemExist.Item != nil) || err != nil {
 		if err != nil {
 			result.ErrorMessage = err.Error()
 			result.Error = err
@@ -111,7 +135,7 @@ func (handler *DynamoDbHandler) commandCreate(ctx context.Context, wrenchContext
 		if err == nil {
 			result.HttpStatusCode = 201
 		} else {
-			result.ErrorMessage = fmt.Sprintf("Couldn't add item to table %v. Here's why: %v\n", handler.TableConnection.TableName, err)
+			result.ErrorMessage = fmt.Sprintf("Couldn't add item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err)
 			result.Error = err
 			result.HttpStatusCode = 500
 		}
@@ -120,12 +144,158 @@ func (handler *DynamoDbHandler) commandCreate(ctx context.Context, wrenchContext
 	return result
 }
 
-func (handler *DynamoDbHandler) getItem(ctx context.Context, wrenchContext *contexts.WrenchContext, bodyContext *contexts.BodyContext) (*dynamodb.GetItemOutput, error) {
+func (handler *DynamoDbHandler) updateCommand(ctx context.Context, wrenchContext *contexts.WrenchContext, bodyContext *contexts.BodyContext, item map[string]types.AttributeValue) dynamodbCommandResult {
+	var result dynamodbCommandResult
+
+	keys, err := handler.getKeyFromItem(item)
+
+	if err != nil {
+		result.ErrorMessage = fmt.Sprintf("Error to get key. Here's why: %v\n", err)
+		result.Error = err
+		result.HttpStatusCode = 500
+		return result
+	}
+
+	itemExist, err := handler.getItem(ctx, wrenchContext, bodyContext, keys)
+
+	if (itemExist != nil && itemExist.Item == nil) || err != nil {
+		if err != nil {
+			result.ErrorMessage = err.Error()
+			result.Error = err
+			result.HttpStatusCode = 500
+		} else {
+			result.ErrorMessage = fmt.Sprintf("Not found! The document don't exist in table %v", handler.TableConnection.TableName)
+			result.Error = errors.New(result.ErrorMessage)
+			result.HttpStatusCode = 404
+		}
+	} else {
+
+		_, err := handler.TableConnection.DynamoDbClient.PutItem(ctx, &dynamodb.PutItemInput{
+			TableName: aws.String(handler.TableConnection.TableName), Item: item,
+		})
+
+		if err == nil {
+			result.HttpStatusCode = 200
+		} else {
+			result.ErrorMessage = fmt.Sprintf("Couldn't update item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err)
+			result.Error = err
+			result.HttpStatusCode = 500
+		}
+	}
+
+	return result
+}
+
+func (handler *DynamoDbHandler) createOrUpdateCommand(ctx context.Context, item map[string]types.AttributeValue) dynamodbCommandResult {
+	var result dynamodbCommandResult
+
+	_, err := handler.TableConnection.DynamoDbClient.PutItem(ctx, &dynamodb.PutItemInput{
+		TableName: aws.String(handler.TableConnection.TableName), Item: item,
+	})
+
+	if err == nil {
+		result.HttpStatusCode = 200
+	} else {
+		result.ErrorMessage = fmt.Sprintf("Couldn't update item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err)
+		result.Error = err
+		result.HttpStatusCode = 500
+	}
+
+	return result
+}
+
+func (handler *DynamoDbHandler) deleteCommand(ctx context.Context, wrenchContext *contexts.WrenchContext, bodyContext *contexts.BodyContext) dynamodbCommandResult {
+	var result dynamodbCommandResult
+
 	keys, err := handler.getKey(wrenchContext, bodyContext)
 
 	if err != nil {
-		return nil, err
+		result.ErrorMessage = fmt.Sprintf("Error to get key. Here's why: %v\n", err)
+		result.Error = err
+		result.HttpStatusCode = 500
+		return result
 	}
+
+	itemExist, err := handler.getItem(ctx, wrenchContext, bodyContext, keys)
+
+	if (itemExist != nil && itemExist.Item == nil) || err != nil {
+		if err != nil {
+			result.ErrorMessage = err.Error()
+			result.Error = err
+			result.HttpStatusCode = 500
+		} else {
+			result.ErrorMessage = fmt.Sprintf("Not found! The document don't exist in table %v", handler.TableConnection.TableName)
+			result.Error = errors.New(result.ErrorMessage)
+			result.HttpStatusCode = 404
+		}
+	} else {
+		key, err := handler.getKey(wrenchContext, bodyContext)
+		if err == nil {
+			_, err = handler.TableConnection.DynamoDbClient.DeleteItem(ctx, &dynamodb.DeleteItemInput{
+				TableName: aws.String(handler.TableConnection.TableName), Key: key,
+			})
+		}
+
+		if err == nil {
+			result.HttpStatusCode = 200
+			result.Body = []byte("{}")
+		} else {
+			result.ErrorMessage = fmt.Sprintf("Couldn't update item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err)
+			result.Error = err
+			result.HttpStatusCode = 500
+		}
+	}
+
+	return result
+}
+
+func (handler *DynamoDbHandler) getCommand(ctx context.Context, wrenchContext *contexts.WrenchContext, bodyContext *contexts.BodyContext) dynamodbCommandResult {
+	var result dynamodbCommandResult
+
+	keys, err := handler.getKey(wrenchContext, bodyContext)
+
+	if err != nil {
+		result.ErrorMessage = fmt.Sprintf("Error to get key. Here's why: %v\n", err)
+		result.Error = err
+		result.HttpStatusCode = 500
+		return result
+	}
+
+	itemExist, err := handler.getItem(ctx, wrenchContext, bodyContext, keys)
+
+	if (itemExist != nil && itemExist.Item == nil) || err != nil {
+		if err != nil {
+			result.ErrorMessage = err.Error()
+			result.Error = err
+			result.HttpStatusCode = 500
+		} else {
+			result.ErrorMessage = fmt.Sprintf("Not found! The document don't exist in table %v", handler.TableConnection.TableName)
+			result.Error = errors.New(result.ErrorMessage)
+			result.HttpStatusCode = 404
+		}
+	} else {
+		var itemResult map[string]interface{}
+		err = attributevalue.UnmarshalMap(itemExist.Item, &itemResult)
+		var jsonArray []byte
+
+		if err == nil {
+			jsonArray, err = json.Marshal(itemResult)
+		}
+
+		if err == nil {
+			result.HttpStatusCode = 200
+			result.Body = jsonArray
+		} else {
+			result.ErrorMessage = fmt.Sprintf("Error convert item. Here's why: %v\n", err)
+			result.Error = err
+			result.HttpStatusCode = 500
+		}
+	}
+
+	return result
+}
+
+func (handler *DynamoDbHandler) getItem(ctx context.Context, wrenchContext *contexts.WrenchContext, bodyContext *contexts.BodyContext, keys map[string]types.AttributeValue) (*dynamodb.GetItemOutput, error) {
 
 	response, err := handler.TableConnection.DynamoDbClient.GetItem(ctx, &dynamodb.GetItemInput{
 		Key: keys, TableName: aws.String(handler.TableConnection.TableName),
@@ -144,12 +314,39 @@ func (handler *DynamoDbHandler) setError(wrenchContext *contexts.WrenchContext, 
 	bodyContext.HttpStatusCode = statusCode
 }
 
+func (handler *DynamoDbHandler) getKeyFromItem(item map[string]types.AttributeValue) (map[string]types.AttributeValue, error) {
+
+	partitionKeyValue, ok := item[handler.TableSettings.PartitionKeyName]
+	if !ok {
+		return nil, fmt.Errorf("the partition key %v not exist in item", handler.TableSettings.PartitionKeyName)
+	}
+
+	var sortKeyValue types.AttributeValue
+	if len(handler.TableSettings.SortKeyName) > 0 {
+		sortKeyValue, ok = item[handler.TableSettings.SortKeyName]
+		if !ok {
+			return nil, fmt.Errorf("the sort key %v not exist in item", handler.TableSettings.SortKeyName)
+		}
+	}
+
+	if sortKeyValue != nil {
+		var keyMap = map[string]types.AttributeValue{
+			handler.TableSettings.PartitionKeyName: partitionKeyValue,
+			handler.TableSettings.SortKeyName:      sortKeyValue}
+		return keyMap, nil
+	} else {
+		var keyMap = map[string]types.AttributeValue{
+			handler.TableSettings.PartitionKeyName: partitionKeyValue}
+		return keyMap, nil
+	}
+}
+
 func (handler *DynamoDbHandler) getKey(wrenchContext *contexts.WrenchContext, bodyContext *contexts.BodyContext) (map[string]types.AttributeValue, error) {
-	partitionKeyValue := contexts.GetCalculatedValue(handler.TableSettings.PartitionKeyName, wrenchContext, bodyContext, handler.ActionSettings)
+	partitionKeyValue := contexts.GetCalculatedValue(handler.ActionSettings.DynamoDb.Key.PartitionKeyValue, wrenchContext, bodyContext, handler.ActionSettings)
 	var sortKeyValue interface{}
 
 	if len(handler.TableSettings.SortKeyName) > 0 {
-		sortKeyValue = contexts.GetCalculatedValue(handler.TableSettings.SortKeyName, wrenchContext, bodyContext, handler.ActionSettings)
+		sortKeyValue = contexts.GetCalculatedValue(handler.ActionSettings.DynamoDb.Key.SortKeyValue, wrenchContext, bodyContext, handler.ActionSettings)
 	}
 	marshalPartitionKeyValue, err := attributevalue.Marshal(partitionKeyValue)
 
