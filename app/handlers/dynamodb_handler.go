@@ -31,13 +31,21 @@ type DynamoDbHandler struct {
 
 type dynamodbCommandResult struct {
 	HttpStatusCode int
+	Body           []byte
 	ErrorMessage   string
 	Error          error
-	Body           []byte
 }
 
 func (result *dynamodbCommandResult) IsSuccess() bool {
 	return result.Error == nil && len(result.ErrorMessage) == 0
+}
+
+func createDynamodbCommandResultSuccess(httpStatusCode int, body []byte) dynamodbCommandResult {
+	return dynamodbCommandResult{HttpStatusCode: httpStatusCode, Body: body}
+}
+
+func createDynamodbCommandResultError(httpStatusCode int, errorMessage string, err error) dynamodbCommandResult {
+	return dynamodbCommandResult{HttpStatusCode: httpStatusCode, ErrorMessage: errorMessage, Error: err}
 }
 
 func (handler *DynamoDbHandler) Do(ctx context.Context, wrenchContext *contexts.WrenchContext, bodyContext *contexts.BodyContext) {
@@ -103,28 +111,19 @@ func (handler *DynamoDbHandler) metricRecord(ctx context.Context, duration float
 }
 
 func (handler *DynamoDbHandler) createCommand(ctx context.Context, wrenchContext *contexts.WrenchContext, bodyContext *contexts.BodyContext, item map[string]types.AttributeValue) dynamodbCommandResult {
-	var result dynamodbCommandResult
-
 	keys, err := handler.getKeyFromItem(item)
 
 	if err != nil {
-		result.ErrorMessage = fmt.Sprintf("Error to get key. Here's why: %v\n", err)
-		result.Error = err
-		result.HttpStatusCode = 500
-		return result
+		return createDynamodbCommandResultError(500, fmt.Sprintf("Error to get key. Here's why: %v\n", err), err)
 	}
 
 	itemExist, err := handler.getItem(ctx, wrenchContext, bodyContext, keys)
 
 	if (itemExist != nil && itemExist.Item != nil) || err != nil {
 		if err != nil {
-			result.ErrorMessage = err.Error()
-			result.Error = err
-			result.HttpStatusCode = 500
+			return createDynamodbCommandResultError(500, err.Error(), err)
 		} else {
-			result.ErrorMessage = fmt.Sprintf("Conflit! The document already exist in table %v", handler.TableConnection.TableName)
-			result.Error = errors.New(result.ErrorMessage)
-			result.HttpStatusCode = 409
+			return createDynamodbCommandResultError(409, fmt.Sprintf("Conflit! The document already exist in table %v", handler.TableConnection.TableName), errors.New("item already exist"))
 		}
 	} else {
 
@@ -133,41 +132,27 @@ func (handler *DynamoDbHandler) createCommand(ctx context.Context, wrenchContext
 		})
 
 		if err == nil {
-			result.HttpStatusCode = 201
-			result.Body = bodyContext.GetBody(handler.ActionSettings)
+			return createDynamodbCommandResultSuccess(201, bodyContext.GetBody(handler.ActionSettings))
 		} else {
-			result.ErrorMessage = fmt.Sprintf("Couldn't add item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err)
-			result.Error = err
-			result.HttpStatusCode = 500
+			return createDynamodbCommandResultError(500, fmt.Sprintf("Couldn't add item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err), err)
 		}
 	}
-
-	return result
 }
 
 func (handler *DynamoDbHandler) updateCommand(ctx context.Context, wrenchContext *contexts.WrenchContext, bodyContext *contexts.BodyContext, item map[string]types.AttributeValue) dynamodbCommandResult {
-	var result dynamodbCommandResult
-
 	keys, err := handler.getKeyFromItem(item)
 
 	if err != nil {
-		result.ErrorMessage = fmt.Sprintf("Error to get key. Here's why: %v\n", err)
-		result.Error = err
-		result.HttpStatusCode = 500
-		return result
+		return createDynamodbCommandResultError(500, fmt.Sprintf("Error to get key. Here's why: %v\n", err), err)
 	}
 
 	itemExist, err := handler.getItem(ctx, wrenchContext, bodyContext, keys)
 
 	if (itemExist != nil && itemExist.Item == nil) || err != nil {
 		if err != nil {
-			result.ErrorMessage = err.Error()
-			result.Error = err
-			result.HttpStatusCode = 500
+			return createDynamodbCommandResultError(500, err.Error(), err)
 		} else {
-			result.ErrorMessage = fmt.Sprintf("Not found! The document don't exist in table %v", handler.TableConnection.TableName)
-			result.Error = errors.New(result.ErrorMessage)
-			result.HttpStatusCode = 404
+			return createDynamodbCommandResultError(404, fmt.Sprintf("Not found! The document don't exist in table %v", handler.TableConnection.TableName), errors.New("item not exist"))
 		}
 	} else {
 
@@ -176,60 +161,40 @@ func (handler *DynamoDbHandler) updateCommand(ctx context.Context, wrenchContext
 		})
 
 		if err == nil {
-			result.HttpStatusCode = 200
-			result.Body = bodyContext.GetBody(handler.ActionSettings)
+			return createDynamodbCommandResultSuccess(200, bodyContext.GetBody(handler.ActionSettings))
 		} else {
-			result.ErrorMessage = fmt.Sprintf("Couldn't update item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err)
-			result.Error = err
-			result.HttpStatusCode = 500
+			return createDynamodbCommandResultError(500, fmt.Sprintf("Couldn't update item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err), err)
 		}
 	}
-
-	return result
 }
 
 func (handler *DynamoDbHandler) createOrUpdateCommand(ctx context.Context, bodyContext *contexts.BodyContext, item map[string]types.AttributeValue) dynamodbCommandResult {
-	var result dynamodbCommandResult
-
 	_, err := handler.TableConnection.DynamoDbClient.PutItem(ctx, &dynamodb.PutItemInput{
 		TableName: aws.String(handler.TableConnection.TableName), Item: item,
 	})
 
 	if err == nil {
-		result.HttpStatusCode = 200
-		result.Body = bodyContext.GetBody(handler.ActionSettings)
+		return createDynamodbCommandResultSuccess(200, bodyContext.GetBody(handler.ActionSettings))
 	} else {
-		result.ErrorMessage = fmt.Sprintf("Couldn't update item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err)
-		result.Error = err
-		result.HttpStatusCode = 500
+		return createDynamodbCommandResultError(500, fmt.Sprintf("Couldn't update item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err), err)
 	}
-
-	return result
 }
 
 func (handler *DynamoDbHandler) deleteCommand(ctx context.Context, wrenchContext *contexts.WrenchContext, bodyContext *contexts.BodyContext) dynamodbCommandResult {
-	var result dynamodbCommandResult
 
 	keys, err := handler.getKey(wrenchContext, bodyContext)
 
 	if err != nil {
-		result.ErrorMessage = fmt.Sprintf("Error to get key. Here's why: %v\n", err)
-		result.Error = err
-		result.HttpStatusCode = 500
-		return result
+		return createDynamodbCommandResultError(500, fmt.Sprintf("Error to get key. Here's why: %v\n", err), err)
 	}
 
 	itemExist, err := handler.getItem(ctx, wrenchContext, bodyContext, keys)
 
 	if (itemExist != nil && itemExist.Item == nil) || err != nil {
 		if err != nil {
-			result.ErrorMessage = err.Error()
-			result.Error = err
-			result.HttpStatusCode = 500
+			return createDynamodbCommandResultError(500, err.Error(), err)
 		} else {
-			result.ErrorMessage = fmt.Sprintf("Not found! The document don't exist in table %v", handler.TableConnection.TableName)
-			result.Error = errors.New(result.ErrorMessage)
-			result.HttpStatusCode = 404
+			return createDynamodbCommandResultError(404, fmt.Sprintf("Not found! The document don't exist in table %v", handler.TableConnection.TableName), errors.New("item not exist"))
 		}
 	} else {
 		key, err := handler.getKey(wrenchContext, bodyContext)
@@ -240,41 +205,28 @@ func (handler *DynamoDbHandler) deleteCommand(ctx context.Context, wrenchContext
 		}
 
 		if err == nil {
-			result.HttpStatusCode = 200
-			result.Body = []byte("{}")
+			return createDynamodbCommandResultSuccess(200, []byte("{}"))
 		} else {
-			result.ErrorMessage = fmt.Sprintf("Couldn't update item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err)
-			result.Error = err
-			result.HttpStatusCode = 500
+			return createDynamodbCommandResultError(500, fmt.Sprintf("Couldn't delete item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err), err)
 		}
 	}
-
-	return result
 }
 
 func (handler *DynamoDbHandler) getCommand(ctx context.Context, wrenchContext *contexts.WrenchContext, bodyContext *contexts.BodyContext) dynamodbCommandResult {
-	var result dynamodbCommandResult
 
 	keys, err := handler.getKey(wrenchContext, bodyContext)
 
 	if err != nil {
-		result.ErrorMessage = fmt.Sprintf("Error to get key. Here's why: %v\n", err)
-		result.Error = err
-		result.HttpStatusCode = 500
-		return result
+		return createDynamodbCommandResultError(500, fmt.Sprintf("Error to get key. Here's why: %v\n", err), err)
 	}
 
 	itemExist, err := handler.getItem(ctx, wrenchContext, bodyContext, keys)
 
 	if (itemExist != nil && itemExist.Item == nil) || err != nil {
 		if err != nil {
-			result.ErrorMessage = err.Error()
-			result.Error = err
-			result.HttpStatusCode = 500
+			return createDynamodbCommandResultError(500, err.Error(), err)
 		} else {
-			result.ErrorMessage = fmt.Sprintf("Not found! The document don't exist in table %v", handler.TableConnection.TableName)
-			result.Error = errors.New(result.ErrorMessage)
-			result.HttpStatusCode = 404
+			return createDynamodbCommandResultError(404, fmt.Sprintf("Not found! The document don't exist in table %v", handler.TableConnection.TableName), errors.New("item not exist"))
 		}
 	} else {
 		var itemResult map[string]interface{}
@@ -286,16 +238,11 @@ func (handler *DynamoDbHandler) getCommand(ctx context.Context, wrenchContext *c
 		}
 
 		if err == nil {
-			result.HttpStatusCode = 200
-			result.Body = jsonArray
+			return createDynamodbCommandResultSuccess(200, jsonArray)
 		} else {
-			result.ErrorMessage = fmt.Sprintf("Error convert item. Here's why: %v\n", err)
-			result.Error = err
-			result.HttpStatusCode = 500
+			return createDynamodbCommandResultError(500, fmt.Sprintf("Error convert item. Here's why: %v\n", err), err)
 		}
 	}
-
-	return result
 }
 
 func (handler *DynamoDbHandler) getItem(ctx context.Context, wrenchContext *contexts.WrenchContext, bodyContext *contexts.BodyContext, keys map[string]types.AttributeValue) (*dynamodb.GetItemOutput, error) {
