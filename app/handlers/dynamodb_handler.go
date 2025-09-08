@@ -40,11 +40,11 @@ func (result *dynamoDbCommandResult) IsSuccess() bool {
 	return result.Error == nil && len(result.ErrorMessage) == 0
 }
 
-func createdynamoDbCommandResultSuccess(httpStatusCode int, body []byte) dynamoDbCommandResult {
+func createDynamoDbCommandResultSuccess(httpStatusCode int, body []byte) dynamoDbCommandResult {
 	return dynamoDbCommandResult{HttpStatusCode: httpStatusCode, Body: body}
 }
 
-func createdynamoDbCommandResultError(httpStatusCode int, errorMessage string, err error) dynamoDbCommandResult {
+func createDynamoDbCommandResultError(httpStatusCode int, errorMessage string, err error) dynamoDbCommandResult {
 	return dynamoDbCommandResult{HttpStatusCode: httpStatusCode, ErrorMessage: errorMessage, Error: err}
 }
 
@@ -114,16 +114,16 @@ func (handler *DynamoDbHandler) createCommand(ctx context.Context, wrenchContext
 	keys, err := handler.getKeyFromItem(item)
 
 	if err != nil {
-		return createdynamoDbCommandResultError(500, fmt.Sprintf("Error to get key. Here's why: %v\n", err), err)
+		return createDynamoDbCommandResultError(500, fmt.Sprintf("Error to get key. Here's why: %v\n", err), err)
 	}
 
 	itemExist, err := handler.getItem(ctx, wrenchContext, bodyContext, keys)
 
 	if (itemExist != nil && itemExist.Item != nil) || err != nil {
 		if err != nil {
-			return createdynamoDbCommandResultError(500, err.Error(), err)
+			return createDynamoDbCommandResultError(500, err.Error(), err)
 		} else {
-			return createdynamoDbCommandResultError(409, fmt.Sprintf("Conflit! The document already exist in table %v", handler.TableConnection.TableName), errors.New("item already exist"))
+			return createDynamoDbCommandResultError(409, fmt.Sprintf("Conflit! The document already exist in table %v", handler.TableConnection.TableName), errors.New("item already exist"))
 		}
 	} else {
 
@@ -132,9 +132,9 @@ func (handler *DynamoDbHandler) createCommand(ctx context.Context, wrenchContext
 		})
 
 		if err == nil {
-			return createdynamoDbCommandResultSuccess(201, bodyContext.GetBody(handler.ActionSettings))
+			return createDynamoDbCommandResultSuccess(201, bodyContext.GetBody(handler.ActionSettings))
 		} else {
-			return createdynamoDbCommandResultError(500, fmt.Sprintf("Couldn't add item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err), err)
+			return createDynamoDbCommandResultError(500, fmt.Sprintf("Couldn't add item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err), err)
 		}
 	}
 }
@@ -143,16 +143,16 @@ func (handler *DynamoDbHandler) updateCommand(ctx context.Context, wrenchContext
 	keys, err := handler.getKeyFromItem(item)
 
 	if err != nil {
-		return createdynamoDbCommandResultError(500, fmt.Sprintf("Error to get key. Here's why: %v\n", err), err)
+		return createDynamoDbCommandResultError(500, fmt.Sprintf("Error to get key. Here's why: %v\n", err), err)
 	}
 
 	itemExist, err := handler.getItem(ctx, wrenchContext, bodyContext, keys)
 
 	if (itemExist != nil && itemExist.Item == nil) || err != nil {
 		if err != nil {
-			return createdynamoDbCommandResultError(500, err.Error(), err)
+			return createDynamoDbCommandResultError(500, err.Error(), err)
 		} else {
-			return createdynamoDbCommandResultError(404, fmt.Sprintf("Not found! The document don't exist in table %v", handler.TableConnection.TableName), errors.New("item not exist"))
+			return createDynamoDbCommandResultError(404, fmt.Sprintf("Not found! The document don't exist in table %v", handler.TableConnection.TableName), errors.New("item not exist"))
 		}
 	} else {
 
@@ -161,9 +161,9 @@ func (handler *DynamoDbHandler) updateCommand(ctx context.Context, wrenchContext
 		})
 
 		if err == nil {
-			return createdynamoDbCommandResultSuccess(200, bodyContext.GetBody(handler.ActionSettings))
+			return createDynamoDbCommandResultSuccess(200, bodyContext.GetBody(handler.ActionSettings))
 		} else {
-			return createdynamoDbCommandResultError(500, fmt.Sprintf("Couldn't update item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err), err)
+			return createDynamoDbCommandResultError(500, fmt.Sprintf("Couldn't update item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err), err)
 		}
 	}
 }
@@ -174,9 +174,9 @@ func (handler *DynamoDbHandler) createOrUpdateCommand(ctx context.Context, bodyC
 	})
 
 	if err == nil {
-		return createdynamoDbCommandResultSuccess(200, bodyContext.GetBody(handler.ActionSettings))
+		return createDynamoDbCommandResultSuccess(200, bodyContext.GetBody(handler.ActionSettings))
 	} else {
-		return createdynamoDbCommandResultError(500, fmt.Sprintf("Couldn't update item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err), err)
+		return createDynamoDbCommandResultError(500, fmt.Sprintf("Couldn't update item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err), err)
 	}
 }
 
@@ -185,16 +185,16 @@ func (handler *DynamoDbHandler) deleteCommand(ctx context.Context, wrenchContext
 	keys, err := handler.getKey(wrenchContext, bodyContext)
 
 	if err != nil {
-		return createdynamoDbCommandResultError(500, fmt.Sprintf("Error to get key. Here's why: %v\n", err), err)
+		return createDynamoDbCommandResultError(500, fmt.Sprintf("Error to get key. Here's why: %v\n", err), err)
 	}
 
 	itemExist, err := handler.getItem(ctx, wrenchContext, bodyContext, keys)
 
 	if (itemExist != nil && itemExist.Item == nil) || err != nil {
 		if err != nil {
-			return createdynamoDbCommandResultError(500, err.Error(), err)
+			return createDynamoDbCommandResultError(500, err.Error(), err)
 		} else {
-			return createdynamoDbCommandResultError(404, fmt.Sprintf("Not found! The document don't exist in table %v", handler.TableConnection.TableName), errors.New("item not exist"))
+			return createDynamoDbCommandResultError(404, fmt.Sprintf("Not found! The document don't exist in table %v", handler.TableConnection.TableName), errors.New("item not exist"))
 		}
 	} else {
 		key, err := handler.getKey(wrenchContext, bodyContext)
@@ -205,9 +205,9 @@ func (handler *DynamoDbHandler) deleteCommand(ctx context.Context, wrenchContext
 		}
 
 		if err == nil {
-			return createdynamoDbCommandResultSuccess(200, []byte("{}"))
+			return createDynamoDbCommandResultSuccess(200, []byte("{}"))
 		} else {
-			return createdynamoDbCommandResultError(500, fmt.Sprintf("Couldn't delete item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err), err)
+			return createDynamoDbCommandResultError(500, fmt.Sprintf("Couldn't delete item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err), err)
 		}
 	}
 }
@@ -217,16 +217,16 @@ func (handler *DynamoDbHandler) getCommand(ctx context.Context, wrenchContext *c
 	keys, err := handler.getKey(wrenchContext, bodyContext)
 
 	if err != nil {
-		return createdynamoDbCommandResultError(500, fmt.Sprintf("Error to get key. Here's why: %v\n", err), err)
+		return createDynamoDbCommandResultError(500, fmt.Sprintf("Error to get key. Here's why: %v\n", err), err)
 	}
 
 	itemExist, err := handler.getItem(ctx, wrenchContext, bodyContext, keys)
 
 	if (itemExist != nil && itemExist.Item == nil) || err != nil {
 		if err != nil {
-			return createdynamoDbCommandResultError(500, err.Error(), err)
+			return createDynamoDbCommandResultError(500, err.Error(), err)
 		} else {
-			return createdynamoDbCommandResultError(404, fmt.Sprintf("Not found! The document don't exist in table %v", handler.TableConnection.TableName), errors.New("item not exist"))
+			return createDynamoDbCommandResultError(404, fmt.Sprintf("Not found! The document don't exist in table %v", handler.TableConnection.TableName), errors.New("item not exist"))
 		}
 	} else {
 		var itemResult map[string]interface{}
@@ -238,9 +238,9 @@ func (handler *DynamoDbHandler) getCommand(ctx context.Context, wrenchContext *c
 		}
 
 		if err == nil {
-			return createdynamoDbCommandResultSuccess(200, jsonArray)
+			return createDynamoDbCommandResultSuccess(200, jsonArray)
 		} else {
-			return createdynamoDbCommandResultError(500, fmt.Sprintf("Error convert item. Here's why: %v\n", err), err)
+			return createDynamoDbCommandResultError(500, fmt.Sprintf("Error convert item. Here's why: %v\n", err), err)
 		}
 	}
 }
