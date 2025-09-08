@@ -26,6 +26,22 @@ func (setting *DynamodbConnectionSettings) Valid() validation.ValidateResult {
 		}
 	}
 
+	if setting.Local {
+
+		if len(setting.LocalEndpoint) == 0 {
+			result.AddError("connections.dynamodb.localEndpoint is required when local is true")
+		}
+		if len(setting.LocalAwsAccessKeyId) == 0 {
+			result.AddError("connections.dynamodb.localAwsAccessKeyId is required when local is true")
+		}
+		if len(setting.LocalAwsSecretAccessKey) == 0 {
+			result.AddError("connections.dynamodb.localAwsSecretAccessKey is required when local is true")
+		}
+		if len(setting.LocalAwsRegion) == 0 {
+			result.AddError("connections.dynamodb.localAwsRegion is required when local is true")
+		}
+	}
+
 	return result
 }
 
