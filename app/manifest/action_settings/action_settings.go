@@ -23,7 +23,7 @@ type ActionSettings struct {
 	Nats     *nats_settings.NatsSettings         `yaml:"nats"`
 	Kafka    *kafka_settings.KafkaSettings       `yaml:"kafka"`
 	Func     *func_settings.FuncSettings         `yaml:"func"`
-	DynamoDb *dynamodb_settings.DynamodbSettings `yaml:"dynamodb"`
+	DynamoDb *dynamodb_settings.DynamoDbSettings `yaml:"dynamodb"`
 	Body     *BodyActionSettings                 `yaml:"body"`
 }
 
