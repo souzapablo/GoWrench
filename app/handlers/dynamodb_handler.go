@@ -25,7 +25,7 @@ import (
 type DynamoDbHandler struct {
 	Next            Handler
 	TableConnection *connections.DynamoDbTableConnection
-	TableSettings   *connection_settings.DynamodbTableSettings
+	TableSettings   *connection_settings.DynamoDbTableSettings
 	ActionSettings  *action_settings.ActionSettings
 }
 

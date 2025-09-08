@@ -22,7 +22,7 @@ type DynamoDbTableConnection struct {
 
 var dynamoDbTableConnections map[string]*DynamoDbTableConnection
 
-func loadConnectionsDynamodb(ctx context.Context, dynamodbConn *connection_settings.DynamodbConnectionSettings) error {
+func loadConnectionsDynamodb(ctx context.Context, dynamodbConn *connection_settings.DynamoDbConnectionSettings) error {
 
 	var err error
 

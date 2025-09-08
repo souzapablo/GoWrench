@@ -172,7 +172,7 @@ func buildChainToAction(currentHandler Handler, settings *settings.ApplicationSe
 		if action.DynamoDb != nil {
 			tableConn, _ := connections.GetDynamoDbTableConnection(action.DynamoDb.TableId)
 			dynamoDbHandler.TableConnection = tableConn
-			dynamoDbHandler.TableSettings, _ = manifest_cross_funcs.GetDynamodbTableSettings(action.DynamoDb.TableId)
+			dynamoDbHandler.TableSettings, _ = manifest_cross_funcs.GetDynamoDbTableSettings(action.DynamoDb.TableId)
 		}
 
 		currentHandler.SetNext(dynamoDbHandler)

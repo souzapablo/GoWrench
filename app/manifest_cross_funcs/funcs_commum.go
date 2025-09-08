@@ -86,12 +86,12 @@ func GetService() *service_settings.ServiceSettings {
 	return appSetting.Service
 }
 
-var dynamodbTables map[string]*connection_settings.DynamodbTableSettings
+var dynamodbTables map[string]*connection_settings.DynamoDbTableSettings
 
-func GetDynamodbTableSettings(tableId string) (*connection_settings.DynamodbTableSettings, error) {
+func GetDynamoDbTableSettings(tableId string) (*connection_settings.DynamoDbTableSettings, error) {
 
 	if dynamodbTables == nil {
-		dynamodbTables = make(map[string]*connection_settings.DynamodbTableSettings)
+		dynamodbTables = make(map[string]*connection_settings.DynamoDbTableSettings)
 		appSetting := application_settings.ApplicationSettingsStatic
 		if appSetting.Connections != nil &&
 			appSetting.Connections.DynamoDb != nil &&
@@ -103,7 +103,7 @@ func GetDynamodbTableSettings(tableId string) (*connection_settings.DynamodbTabl
 		}
 	}
 
-	var tableResult *connection_settings.DynamodbTableSettings
+	var tableResult *connection_settings.DynamoDbTableSettings
 	var err error
 
 	tableResult = dynamodbTables[tableId]

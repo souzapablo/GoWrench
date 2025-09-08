@@ -5,17 +5,17 @@ import (
 	"wrench/app/manifest/validation"
 )
 
-type DynamodbConnectionSettings struct {
+type DynamoDbConnectionSettings struct {
 	Local                   bool   `yaml:"local"`
 	LocalEndpoint           string `yaml:"localEndpoint"`
 	LocalAwsAccessKeyId     string `yaml:"localAwsAccessKeyId"`
 	LocalAwsSecretAccessKey string `yaml:"localAwsSecretAccessKey"`
 	LocalAwsRegion          string `yaml:"localAwsRegion"`
 
-	Tables []*DynamodbTableSettings `yaml:"tables"`
+	Tables []*DynamoDbTableSettings `yaml:"tables"`
 }
 
-func (setting *DynamodbConnectionSettings) Valid() validation.ValidateResult {
+func (setting *DynamoDbConnectionSettings) Valid() validation.ValidateResult {
 	var result validation.ValidateResult
 
 	if len(setting.Tables) == 0 {
@@ -45,18 +45,18 @@ func (setting *DynamodbConnectionSettings) Valid() validation.ValidateResult {
 	return result
 }
 
-type DynamodbTableSettings struct {
+type DynamoDbTableSettings struct {
 	Id               string `yaml:"id"`
 	Name             string `yaml:"name"`
 	PartitionKeyName string `yaml:"partitionKeyName"`
 	SortKeyName      string `yaml:"sortKeyName"`
 }
 
-func (setting *DynamodbTableSettings) GetId() string {
+func (setting *DynamoDbTableSettings) GetId() string {
 	return setting.Id
 }
 
-func (setting *DynamodbTableSettings) Valid() validation.ValidateResult {
+func (setting *DynamoDbTableSettings) Valid() validation.ValidateResult {
 	var result validation.ValidateResult
 
 	if len(setting.Id) == 0 {

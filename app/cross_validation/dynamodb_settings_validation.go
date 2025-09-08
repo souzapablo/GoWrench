@@ -17,7 +17,7 @@ func dynamodbCrossValidation(appSetting *application_settings.ApplicationSetting
 	if appSetting.Connections != nil &&
 		appSetting.Connections.DynamoDb != nil {
 
-		result.Append(dynamodbTableIdDuplicated(appSetting.Connections.DynamoDb))
+		result.Append(dynamoDbTableIdDuplicated(appSetting.Connections.DynamoDb))
 	}
 
 	if len(appSetting.Actions) > 0 {
@@ -28,7 +28,7 @@ func dynamodbCrossValidation(appSetting *application_settings.ApplicationSetting
 	return result
 }
 
-func dynamodbTableIdDuplicated(settings *connection_settings.DynamodbConnectionSettings) validation.ValidateResult {
+func dynamoDbTableIdDuplicated(settings *connection_settings.DynamoDbConnectionSettings) validation.ValidateResult {
 
 	var result validation.ValidateResult
 
@@ -71,7 +71,7 @@ func checkActionDynamoDbKeyConfiguredCorrect(settings []*action_settings.ActionS
 				if setting.DynamoDb.Command == dynamodb_settings.DynamoDbCommandGet ||
 					setting.DynamoDb.Command == dynamodb_settings.DynamoDbCommandDelete {
 
-					table, err := manifest_cross_funcs.GetDynamodbTableSettings(setting.DynamoDb.TableId)
+					table, err := manifest_cross_funcs.GetDynamoDbTableSettings(setting.DynamoDb.TableId)
 
 					if err == nil {
 						if len(table.SortKeyName) > 0 {

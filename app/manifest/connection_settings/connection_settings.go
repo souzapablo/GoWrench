@@ -8,7 +8,7 @@ type ConnectionSettings struct {
 	Nats     []*NatsConnectionSettings   `yaml:"nats"`
 	Kafka    []*KafkaConnectionSettings  `yaml:"kafka"`
 	Redis    []*RedisConnectionSettings  `yaml:"redis"`
-	DynamoDb *DynamodbConnectionSettings `yaml:"dynamodb"`
+	DynamoDb *DynamoDbConnectionSettings `yaml:"dynamodb"`
 }
 
 func (settings *ConnectionSettings) Valid() validation.ValidateResult {
