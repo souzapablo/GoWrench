@@ -60,7 +60,7 @@ func (handler *DynamoDbHandler) Do(ctx context.Context, wrenchContext *contexts.
 			} else if handler.ActionSettings.DynamoDb.Command == dynamodb_settings.DynamoDbCommandUpdate {
 				result = handler.updateCommand(ctx, wrenchContext, bodyContext, item)
 			} else if handler.ActionSettings.DynamoDb.Command == dynamodb_settings.DynamoDbCommandCreateOrUpdate {
-				result = handler.createOrUpdateCommand(ctx, item)
+				result = handler.createOrUpdateCommand(ctx, bodyContext, item)
 			} else if handler.ActionSettings.DynamoDb.Command == dynamodb_settings.DynamoDbCommandDelete {
 				result = handler.deleteCommand(ctx, wrenchContext, bodyContext)
 			} else if handler.ActionSettings.DynamoDb.Command == dynamodb_settings.DynamoDbCommandGet {
@@ -134,6 +134,7 @@ func (handler *DynamoDbHandler) createCommand(ctx context.Context, wrenchContext
 
 		if err == nil {
 			result.HttpStatusCode = 201
+			result.Body = bodyContext.GetBody(handler.ActionSettings)
 		} else {
 			result.ErrorMessage = fmt.Sprintf("Couldn't add item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err)
 			result.Error = err
@@ -176,6 +177,7 @@ func (handler *DynamoDbHandler) updateCommand(ctx context.Context, wrenchContext
 
 		if err == nil {
 			result.HttpStatusCode = 200
+			result.Body = bodyContext.GetBody(handler.ActionSettings)
 		} else {
 			result.ErrorMessage = fmt.Sprintf("Couldn't update item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err)
 			result.Error = err
@@ -186,7 +188,7 @@ func (handler *DynamoDbHandler) updateCommand(ctx context.Context, wrenchContext
 	return result
 }
 
-func (handler *DynamoDbHandler) createOrUpdateCommand(ctx context.Context, item map[string]types.AttributeValue) dynamodbCommandResult {
+func (handler *DynamoDbHandler) createOrUpdateCommand(ctx context.Context, bodyContext *contexts.BodyContext, item map[string]types.AttributeValue) dynamodbCommandResult {
 	var result dynamodbCommandResult
 
 	_, err := handler.TableConnection.DynamoDbClient.PutItem(ctx, &dynamodb.PutItemInput{
@@ -195,6 +197,7 @@ func (handler *DynamoDbHandler) createOrUpdateCommand(ctx context.Context, item 
 
 	if err == nil {
 		result.HttpStatusCode = 200
+		result.Body = bodyContext.GetBody(handler.ActionSettings)
 	} else {
 		result.ErrorMessage = fmt.Sprintf("Couldn't update item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err)
 		result.Error = err

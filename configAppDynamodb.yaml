@@ -27,6 +27,10 @@ api:
       method: put
       actionId: update_person
 
+    - route: /api/person2
+      method: post
+      actionId: createOrUpdate_person
+
     - route: /api/person
       method: delete
       actionId: delete_person
@@ -47,7 +51,13 @@ actions:
     dynamodb:
       tableId: table_1
       command: update
-     
+
+  - id: createOrUpdate_person
+    type: dynamodb
+    dynamodb:
+      tableId: table_1
+      command: createOrUpdate 
+    
   - id: delete_person
     type: dynamodb
     dynamodb:
@@ -55,7 +65,7 @@ actions:
       command: delete
       key:
         partitionKeyValue: "{{bodyContext.documentNumber}}"
-      #   sortKeyValue: "{{bodyContext.date}}"
+        sortKeyValue: "{{bodyContext.date}}"
 
   - id: get_person
     type: dynamodb
