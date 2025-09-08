@@ -123,10 +123,12 @@ func GetCalculatedValue(command string, wrenchContext *WrenchContext, bodyContex
 		} else if IsFunc(command) {
 			return GetFuncValue(func_settings.FuncGeneralType(command), wrenchContext, bodyContext, action)
 		} else {
-			return command
+			command = fmt.Sprintf("%v%v", prefixBodyContext, command)
+			return GetValueBodyContext(command, bodyContext)
 		}
 	} else {
-		return command
+		command = fmt.Sprintf("%v%v", prefixBodyContext, command)
+		return GetValueBodyContext(command, bodyContext)
 	}
 }
 
