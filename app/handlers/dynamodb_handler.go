@@ -74,7 +74,7 @@ func (handler *DynamoDbHandler) Do(ctx context.Context, wrenchContext *contexts.
 			} else if handler.ActionSettings.DynamoDb.Command == dynamodb_settings.DynamoDbCommandGet {
 				result = handler.getCommand(ctx, wrenchContext, bodyContext)
 			} else {
-				result.ErrorMessage = fmt.Sprintf("The command %v is not implemented", handler.ActionSettings.DynamoDb.Command)
+				result.ErrorMessage = fmt.Sprintf("The command %v is not implemented yet", handler.ActionSettings.DynamoDb.Command)
 				result.Error = errors.New(result.ErrorMessage)
 				result.HttpStatusCode = 500
 			}
