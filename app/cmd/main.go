@@ -61,10 +61,7 @@ func main() {
 
 	loadBashFiles()
 
-	connErr := connections.LoadConnections()
-	if connErr != nil {
-		app.LogError2("Error connections: %v", connErr)
-	}
+	connections.LoadConnections(ctx)
 
 	go token_credentials.LoadTokenCredentialAuthentication()
 	hanlder := startup.LoadApplicationSettings(ctx, applicationSetting)

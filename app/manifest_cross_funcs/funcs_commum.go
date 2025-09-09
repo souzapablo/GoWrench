@@ -85,3 +85,31 @@ func GetService() *service_settings.ServiceSettings {
 	appSetting := application_settings.ApplicationSettingsStatic
 	return appSetting.Service
 }
+
+var dynamodbTables map[string]*connection_settings.DynamoDbTableSettings
+
+func GetDynamoDbTableSettings(tableId string) (*connection_settings.DynamoDbTableSettings, error) {
+
+	if dynamodbTables == nil {
+		dynamodbTables = make(map[string]*connection_settings.DynamoDbTableSettings)
+		appSetting := application_settings.ApplicationSettingsStatic
+		if appSetting.Connections != nil &&
+			appSetting.Connections.DynamoDb != nil &&
+			len(appSetting.Connections.DynamoDb.Tables) > 0 {
+
+			for _, table := range appSetting.Connections.DynamoDb.Tables {
+				dynamodbTables[table.Id] = table
+			}
+		}
+	}
+
+	var tableResult *connection_settings.DynamoDbTableSettings
+	var err error
+
+	tableResult = dynamodbTables[tableId]
+	if tableResult == nil {
+		err = fmt.Errorf("connections.dynamodb.tables[%v] not found", tableId)
+	}
+
+	return tableResult, err
+}

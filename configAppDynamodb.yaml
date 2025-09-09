@@ -1,0 +1,79 @@
+version: 1
+
+service:
+  name: "my-app-otel-test"
+  version: 1.0.0
+
+connections:
+  dynamodb:
+    local: true
+    localEndpoint: "http://localhost:4566"
+    localAwsAccessKeyId: dummy
+    localAwsSecretAccessKey: dummy
+    localAwsRegion: us-east-1
+    tables:
+    - id: table_1
+      name: test
+      partitionKeyName: "documentNumber"
+      sortKeyName:  "date"
+
+api:
+  endpoints:
+    - route: /api/person
+      method: post
+      actionId: create_person
+
+    - route: /api/person
+      method: put
+      actionId: update_person
+
+    - route: /api/person2
+      method: post
+      actionId: createOrUpdate_person
+
+    - route: /api/person
+      method: delete
+      actionId: delete_person
+
+    - route: /api/person/{documentNumber}/date/{date}
+      method: get
+      actionId: get_person
+
+actions:
+  - id: create_person
+    type: dynamodb
+    dynamodb:
+      tableId: table_1
+      command: create
+     
+  - id: update_person
+    type: dynamodb
+    dynamodb:
+      tableId: table_1
+      command: update
+
+  - id: createOrUpdate_person
+    type: dynamodb
+    dynamodb:
+      tableId: table_1
+      command: createOrUpdate 
+    
+  - id: delete_person
+    type: dynamodb
+    dynamodb:
+      tableId: table_1
+      command: delete
+      key:
+        partitionKeyValue: "{{bodyContext.documentNumber}}"
+        sortKeyValue: "{{bodyContext.date}}"
+
+  - id: get_person
+    type: dynamodb
+    dynamodb:
+      tableId: table_1
+      command: get
+      key:
+        partitionKeyValue: "{{wrenchContext.request.uri.params.documentNumber}}"
+        sortKeyValue: "{{wrenchContext.request.uri.params.date}}"
+
+    

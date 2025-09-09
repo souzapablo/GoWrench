@@ -140,6 +140,22 @@ func (bodyContext *BodyContext) GetBody(settings *action_settings.ActionSettings
 	}
 }
 
+func (bodyContext *BodyContext) GetBodyMap(settings *action_settings.ActionSettings) map[string]interface{} {
+	bodyArray := bodyContext.GetBody(settings)
+
+	if len(bodyArray) > 0 {
+		var jsonMap map[string]interface{}
+		jsonErr := json.Unmarshal(bodyArray, &jsonMap)
+
+		if jsonErr != nil {
+			return nil
+		}
+		return jsonMap
+	}
+
+	return nil
+}
+
 func (bodyContext *BodyContext) GetCurrentBody() []byte {
 	return bodyContext.CurrentBodyByteArray
 }

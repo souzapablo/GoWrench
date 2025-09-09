@@ -29,6 +29,7 @@ var NatsPublishDuration metric.Float64Histogram
 var SnsPublishDuration metric.Float64Histogram
 var IdempDuration metric.Float64Histogram
 var RateLimitDuration metric.Float64Histogram
+var DynamoDbDuration metric.Float64Histogram
 
 var LoggerProvider *sdklog.LoggerProvider
 var Logger log.Logger
@@ -41,6 +42,7 @@ func InitMetrics() {
 	SnsPublishDuration, _ = Meter.Float64Histogram("gowrench_sns_publish_duration_ms")
 	IdempDuration, _ = Meter.Float64Histogram("gowrench_idempotency_duration_ms")
 	RateLimitDuration, _ = Meter.Float64Histogram("gowrench_rate_limit_duration_ms")
+	DynamoDbDuration, _ = Meter.Float64Histogram("gowrench_dynamodb_duration_ms")
 }
 
 func InitLogger(lp *sdklog.LoggerProvider) {

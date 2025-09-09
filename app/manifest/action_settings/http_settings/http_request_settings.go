@@ -13,7 +13,7 @@ type HttpRequestSetting struct {
 	Insecure          bool              `yaml:"insecure"`
 }
 
-func (setting HttpRequestSetting) Valid() validation.ValidateResult {
+func (setting *HttpRequestSetting) Valid() validation.ValidateResult {
 	var result validation.ValidateResult
 
 	if len(setting.Method) == 0 {

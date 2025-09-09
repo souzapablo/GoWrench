@@ -6,6 +6,7 @@ import (
 	"wrench/app"
 	"wrench/app/cross_validation"
 	"wrench/app/manifest/application_settings"
+	"wrench/app/startup/connections"
 	"wrench/app/startup/token_credentials"
 )
 
@@ -23,6 +24,9 @@ func (page *InitialPage) WriteInitialPage(w http.ResponseWriter, r *http.Request
 	w.Write([]byte(htmlFirst))
 }
 
+var bodyHcResult map[string]interface{}
+var statusCode int
+
 func (page *InitialPage) HealthCheckEndpoint(w http.ResponseWriter, r *http.Request) {
 	application := application_settings.ApplicationSettingsStatic
 	result := application.Valid()
@@ -36,23 +40,30 @@ func (page *InitialPage) HealthCheckEndpoint(w http.ResponseWriter, r *http.Requ
 		errors = append(errors, token_credentials.CredentialErrors...)
 	}
 
-	if result.IsSuccess() && len(errors) == 0 {
-		body := make(map[string]interface{})
-		body["status"] = "healthly"
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(body)
-	} else {
-
-		result.AddErrors(errors)
-
-		for _, err := range result.GetErrors() {
-			app.LogError2(err, nil)
-		}
-
-		body := make(map[string]interface{})
-		body["status"] = "unhealthly"
-		body["erros"] = result.GetErrors()
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(body)
+	if connections.ErrorLoadConnections != nil {
+		errors = append(errors, connections.ErrorLoadConnections...)
 	}
+
+	if bodyHcResult == nil {
+		if result.IsSuccess() && len(errors) == 0 {
+			statusCode = http.StatusOK
+			bodyHcResult = make(map[string]interface{})
+			bodyHcResult["status"] = "healthy"
+
+		} else {
+			statusCode = http.StatusInternalServerError
+			result.AddErrors(errors)
+
+			for _, err := range result.GetErrors() {
+				app.LogError2(err, nil)
+			}
+
+			bodyHcResult = make(map[string]interface{})
+			bodyHcResult["status"] = "unhealthy"
+			bodyHcResult["errors"] = result.GetErrors()
+		}
+	}
+
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(bodyHcResult)
 }

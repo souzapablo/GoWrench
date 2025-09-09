@@ -4,7 +4,7 @@ import (
 	"wrench/app/manifest/validation"
 )
 
-type HttpRequestMockSetting struct {
+type HttpRequestMockSettings struct {
 	Body        string            `yaml:"body"`
 	ContentType string            `default:"application/json" yaml:"contentType"`
 	Headers     map[string]string `yaml:"headers"`
@@ -12,7 +12,7 @@ type HttpRequestMockSetting struct {
 	MirrorBody  bool              `yaml:"mirrorBody"`
 }
 
-func (setting HttpRequestMockSetting) Valid() validation.ValidateResult {
+func (setting HttpRequestMockSettings) Valid() validation.ValidateResult {
 	var result validation.ValidateResult
 
 	if len(setting.Body) == 0 && setting.MirrorBody == false {
