@@ -123,7 +123,7 @@ func (handler *DynamoDbHandler) createCommand(ctx context.Context, wrenchContext
 		if err != nil {
 			return createDynamoDbCommandResultError(500, err.Error(), err)
 		} else {
-			return createDynamoDbCommandResultError(409, fmt.Sprintf("Conflit! The document already exist in table %v", handler.TableConnection.TableName), errors.New("item already exist"))
+			return createDynamoDbCommandResultError(409, fmt.Sprintf("Conflict! The document already exist in table %v", handler.TableConnection.TableName), errors.New("item already exist"))
 		}
 	} else {
 
