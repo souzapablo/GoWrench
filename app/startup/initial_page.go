@@ -48,7 +48,7 @@ func (page *InitialPage) HealthCheckEndpoint(w http.ResponseWriter, r *http.Requ
 		if result.IsSuccess() && len(errors) == 0 {
 			statusCode = http.StatusOK
 			bodyHcResult = make(map[string]interface{})
-			bodyHcResult["status"] = "healthly"
+			bodyHcResult["status"] = "healthy"
 
 		} else {
 			statusCode = http.StatusInternalServerError
@@ -59,7 +59,7 @@ func (page *InitialPage) HealthCheckEndpoint(w http.ResponseWriter, r *http.Requ
 			}
 
 			bodyHcResult = make(map[string]interface{})
-			bodyHcResult["status"] = "unhealthly"
+			bodyHcResult["status"] = "unhealthy"
 			bodyHcResult["errors"] = result.GetErrors()
 		}
 	}
