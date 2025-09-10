@@ -127,8 +127,7 @@ func GetCalculatedValue(command string, wrenchContext *WrenchContext, bodyContex
 			return GetValueBodyContext(command, bodyContext)
 		}
 	} else {
-		command = fmt.Sprintf("%v%v", prefixBodyContext, command)
-		return GetValueBodyContext(command, bodyContext)
+		return command
 	}
 }
 
