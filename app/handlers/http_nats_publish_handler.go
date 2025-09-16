@@ -5,6 +5,7 @@ import (
 	"time"
 	"wrench/app"
 	contexts "wrench/app/contexts"
+	"wrench/app/cross_funcs"
 	settings "wrench/app/manifest/action_settings"
 	"wrench/app/startup/connections"
 
@@ -73,6 +74,7 @@ func (handler *NatsPublishHandler) metricRecord(ctx context.Context, duration fl
 		metric.WithAttributes(
 			attribute.String("gowrench_connections_id", connectionId),
 			attribute.String("nats_publish_subject_name", subjectName),
+			attribute.String("instance", cross_funcs.GetInstanceID()),
 		),
 	)
 }
