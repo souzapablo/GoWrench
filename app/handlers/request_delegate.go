@@ -65,7 +65,7 @@ func (request *RequestDelegate) HttpHandler(w http.ResponseWriter, r *http.Reque
 func (handler *RequestDelegate) metricRecord(ctx context.Context, duration float64, route string, method string, statusCode int) {
 	app.HttpServerDuration.Record(ctx, duration,
 		metric.WithAttributes(
-			attribute.String("http_server_method", route),
+			attribute.String("http_server_route", route),
 			attribute.String("http_server_method", method),
 			attribute.Int("http_server_status_code", statusCode),
 		),
