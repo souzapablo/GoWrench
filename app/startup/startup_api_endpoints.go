@@ -9,6 +9,8 @@ import (
 	handler "wrench/app/handlers"
 	"wrench/app/manifest/application_settings"
 
+	rootApp "wrench/app"
+
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
@@ -24,6 +26,7 @@ func LoadApiEndpoint(ctx context.Context) http.Handler {
 	muxRoute := mux.NewRouter()
 	initialPage := new(InitialPage)
 	initialPage.Append("<h2>Service: " + app.Service.Name + " version: " + app.Service.Version + "</h2>")
+	initialPage.Append("<h2>Instance: " + rootApp.GetInstanceID() + "</h2>")
 	initialPage.Append("<h2>Endpoints</h2>")
 
 	for _, endpoint := range endpoints {
