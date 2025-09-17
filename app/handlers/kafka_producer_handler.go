@@ -81,6 +81,7 @@ func (handler *KafkaProducerHandler) metricRecord(ctx context.Context, duration 
 		metric.WithAttributes(
 			attribute.String("gowrench_connections_id", connectionId),
 			attribute.String("kafka_producer_topic_name", topicName),
+			attribute.String("instance", app.GetInstanceID()),
 		),
 	)
 }

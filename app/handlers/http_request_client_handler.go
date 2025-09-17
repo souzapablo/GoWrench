@@ -86,6 +86,7 @@ func (handler *HttpRequestClientHandler) metricRecord(ctx context.Context, durat
 			attribute.Int("http_client_status_code", statusCode),
 			attribute.String("http_client_method", method),
 			attribute.String("http_client_authority", handler.getAuhorityFromUrl(url)),
+			attribute.String("instance", app.GetInstanceID()),
 		),
 	)
 }

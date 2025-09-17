@@ -16,6 +16,7 @@ import (
 
 	"github.com/go-redis/redis_rate/v10"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -110,7 +111,9 @@ func (handler *RateLimitHandler) getKey(wrenchContext *contexts.WrenchContext, b
 }
 
 func (handler *RateLimitHandler) metricRecord(ctx context.Context, duration float64) {
-	app.KafkaProducerDuration.Record(ctx, duration)
+	app.KafkaProducerDuration.Record(ctx, duration, metric.WithAttributes(
+		attribute.String("instance", app.GetInstanceID()),
+	))
 }
 
 func (handler *RateLimitHandler) setSpanAttributes(span trace.Span, redisConnectionId string, key string) {

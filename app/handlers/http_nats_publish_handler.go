@@ -73,6 +73,7 @@ func (handler *NatsPublishHandler) metricRecord(ctx context.Context, duration fl
 		metric.WithAttributes(
 			attribute.String("gowrench_connections_id", connectionId),
 			attribute.String("nats_publish_subject_name", subjectName),
+			attribute.String("instance", app.GetInstanceID()),
 		),
 	)
 }
