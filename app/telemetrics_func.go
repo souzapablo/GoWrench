@@ -8,16 +8,12 @@ import (
 
 var instanceID string
 
-func init() {
-	instanceID = loadInstanceID()
-}
-
-func loadInstanceID() string {
+func LoadInstanceID() {
 	instance := uuid.New()
 	instanceId := instance.String()
 	instanceId = strings.ReplaceAll(instanceId, "-", "")
 
-	return instanceId
+	instanceID = instanceId
 }
 
 func GetInstanceID() string {

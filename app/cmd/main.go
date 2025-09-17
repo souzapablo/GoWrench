@@ -16,6 +16,8 @@ import (
 )
 
 func main() {
+
+	app.LoadInstanceID()
 	ctx := context.Background()
 	app.SetContext(ctx)
 
