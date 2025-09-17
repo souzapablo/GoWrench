@@ -7,7 +7,6 @@ import (
 	"time"
 	"wrench/app"
 	contexts "wrench/app/contexts"
-	"wrench/app/cross_funcs"
 	settings "wrench/app/manifest/api_settings"
 	"wrench/app/manifest/otel_settings"
 
@@ -69,7 +68,7 @@ func (handler *RequestDelegate) metricRecord(ctx context.Context, duration float
 			attribute.String("http_server_route", route),
 			attribute.String("http_server_method", method),
 			attribute.Int("http_server_status_code", statusCode),
-			attribute.String("instance", cross_funcs.GetInstanceID()),
+			attribute.String("instance", app.GetInstanceID()),
 		),
 	)
 }
@@ -79,7 +78,7 @@ func (handler *RequestDelegate) setSpanAttributes(span trace.Span, route string,
 		attribute.String("server.route", route),
 		attribute.String("server.method", method),
 		attribute.Int("server.status_code", statusCode),
-		attribute.String("instance", cross_funcs.GetInstanceID()),
+		attribute.String("instance", app.GetInstanceID()),
 	)
 }
 

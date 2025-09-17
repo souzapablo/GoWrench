@@ -7,7 +7,6 @@ import (
 	"time"
 	"wrench/app"
 	contexts "wrench/app/contexts"
-	"wrench/app/cross_funcs"
 	settings "wrench/app/manifest/action_settings"
 	"wrench/app/startup/connections"
 
@@ -82,7 +81,7 @@ func (handler *KafkaProducerHandler) metricRecord(ctx context.Context, duration 
 		metric.WithAttributes(
 			attribute.String("gowrench_connections_id", connectionId),
 			attribute.String("kafka_producer_topic_name", topicName),
-			attribute.String("instance", cross_funcs.GetInstanceID()),
+			attribute.String("instance", app.GetInstanceID()),
 		),
 	)
 }

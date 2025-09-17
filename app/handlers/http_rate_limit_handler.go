@@ -112,7 +112,7 @@ func (handler *RateLimitHandler) getKey(wrenchContext *contexts.WrenchContext, b
 
 func (handler *RateLimitHandler) metricRecord(ctx context.Context, duration float64) {
 	app.KafkaProducerDuration.Record(ctx, duration, metric.WithAttributes(
-		attribute.String("instance", cross_funcs.GetInstanceID()),
+		attribute.String("instance", app.GetInstanceID()),
 	))
 }
 
