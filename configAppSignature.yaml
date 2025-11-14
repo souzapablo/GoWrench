@@ -1,0 +1,30 @@
+version: 1
+
+service:
+  name: "{{SERVICE_NAME}}"
+  version: 1.0.0
+
+keys:
+  - id: private_carat
+    privateRsaKeyBase64: '{{PRIVATE_KEY_BASE64}}'
+    passphrase: '{{PRIVATE_KEY_PASSWORD}}'
+
+
+api:
+  endpoints:
+    - route: /api/sign_test
+      method: post
+      actionId: func_sign
+
+actions:
+  - id: func_sign
+    type: funcSignature
+    body:
+      preserveCurrentBody: true
+      use: "{{bodyContext.actions.func_concate}}"
+    func:
+      sign:
+        keyId: private_carat
+        
+
+
