@@ -12,10 +12,11 @@ const (
 )
 
 type FuncSettings struct {
-	Hash        *FuncHashSettings `yaml:"hash"`
-	Vars        map[string]string `yaml:"vars"`
-	Concatenate []string          `yaml:"concatenate"`
-	Command     FuncGeneralType   `yaml:"command"`
+	Hash        *FuncHashSettings      `yaml:"hash"`
+	Sign        *FuncSignatureSettings `yaml:"sign"`
+	Vars        map[string]string      `yaml:"vars"`
+	Concatenate []string               `yaml:"concatenate"`
+	Command     FuncGeneralType        `yaml:"command"`
 }
 
 func (setting FuncSettings) Valid() validation.ValidateResult {
@@ -23,6 +24,10 @@ func (setting FuncSettings) Valid() validation.ValidateResult {
 
 	if setting.Hash != nil {
 		result.AppendValidable(setting.Hash)
+	}
+
+	if setting.Sign != nil {
+		result.AppendValidable(setting.Sign)
 	}
 
 	if len(setting.Command) > 0 {
