@@ -5,7 +5,6 @@ import "wrench/app/manifest/validation"
 type KeySettings struct {
 	Id                     string `yaml:"id"`
 	PrivateRsaKeyDERBase64 string `yaml:"privateRsaKeyDERBase64"`
-	Passphrase             string `yaml:"passphrase"`
 }
 
 func (setting *KeySettings) GetId() string {

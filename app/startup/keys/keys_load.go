@@ -20,7 +20,7 @@ func LoadKeys() {
 	}
 
 	for _, key := range settings.Keys {
-		_, err := LoadEncryptedPrivateKey(key.Id, key.PrivateRsaKeyDERBase64, key.Passphrase)
+		_, err := LoadEncryptedPrivateKey(key.Id, key.PrivateRsaKeyDERBase64)
 		addIfErrorKey(err)
 	}
 }
@@ -32,7 +32,7 @@ func addIfErrorKey(err error) {
 	}
 }
 
-func LoadEncryptedPrivateKey(keyId, privateRsakeyDERBase64, passphrase string) (*rsa.PrivateKey, error) {
+func LoadEncryptedPrivateKey(keyId, privateRsakeyDERBase64 string) (*rsa.PrivateKey, error) {
 
 	if privateKeys == nil {
 		privateKeys = make(map[string]*rsa.PrivateKey)
