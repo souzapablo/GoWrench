@@ -7,8 +7,6 @@ service:
 keys:
   - id: private_carat
     privateRsaKeyDERBase64: '{{PRIVATE_KEY_BASE64}}'
-    passphrase: '{{PRIVATE_KEY_PASSWORD}}'
-
 
 api:
   endpoints:
