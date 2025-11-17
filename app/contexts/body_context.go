@@ -131,7 +131,7 @@ func (bodyContext *BodyContext) GetBody(settings *action_settings.ActionSettings
 
 	shouldUse, bodyRef := settings.ShouldUseBodyRef()
 
-	if shouldUse {
+	if shouldUse && bodyRef != "{{bodyContext.currentBody}}" {
 		bodyRef = ReplaceCalculatedValue(bodyRef)
 		bodyRef = ReplacePrefixBodyContextPreserved(bodyRef)
 		return bodyContext.GetBodyPreserved(bodyRef)

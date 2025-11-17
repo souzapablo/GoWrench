@@ -6,7 +6,7 @@ service:
 
 keys:
   - id: private_carat
-    privateRsaKeyBase64: '{{PRIVATE_KEY_BASE64}}'
+    privateRsaKeyDERBase64: '{{PRIVATE_KEY_BASE64}}'
     passphrase: '{{PRIVATE_KEY_PASSWORD}}'
 
 
@@ -14,15 +14,75 @@ api:
   endpoints:
     - route: /api/sign_test
       method: post
-      actionId: func_sign
+      flowActionId: 
+        - jwt_header
+        - jwt_header_base64
+        - body_base64
+        - func_concate_header_body
+        - func_sign
+        - sign_base64
+        - func_concate_sign
 
 actions:
+  - id: jwt_header
+    type: funcVarContext
+    body:
+      preserveCurrentBody: true
+    func:
+      vars:
+        "alg": "RS256"
+        "typ": "JWT"
+
+  - id: jwt_header_base64
+    type: funcGeneral
+    body:
+      preserveCurrentBody: true
+      use: "{{bodyContext.actions.jwt_header}}"
+    func:
+      command: "{{func.base64Url(encode)}}"
+
+  - id: body_base64
+    type: funcGeneral
+    body:
+      preserveCurrentBody: true
+      use: "{{bodyContext.currentBody}}"
+    func:
+      command: "{{func.base64Url(encode)}}"
+
+        
+  - id: func_concate_header_body
+    type: funcStringConcatenate
+    body:
+      preserveCurrentBody: true
+    func:
+      concatenate:
+      - "{{bodyContext.actions.jwt_header_base64}}"
+      - "."
+      - "{{bodyContext.actions.body_base64}}"
+
+
   - id: func_sign
     type: funcSignature
+    body:
+      preserveCurrentBody: true
+      use: "{{bodyContext.actions.func_concate}}"
     func:
       sign:
         keyId: private_carat
         algorithm: SHA-256
-        
 
+  - id: sign_base64
+    type: funcGeneral
+    body:
+      preserveCurrentBody: true
+      use: "{{bodyContext.actions.func_sign}}"
+    func:
+      command: "{{func.base64Url(encode)}}"
 
+  - id: func_concate_sign
+    type: funcStringConcatenate
+    func:
+      concatenate:
+      - "{{bodyContext.actions.func_concate_header_body}}"
+      - "."
+      - "{{bodyContext.actions.sign_base64}}"

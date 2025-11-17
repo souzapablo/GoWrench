@@ -15,6 +15,9 @@ func GetFuncValue(funcType func_settings.FuncGeneralType, wrenchContext *WrenchC
 	case func_settings.FuncTypeBase64Encode:
 		bodyArray := bodyContext.GetBody(action)
 		return base64.StdEncoding.EncodeToString(bodyArray)
+	case func_settings.FuncTypeBase64UrlEncode:
+		bodyArray := bodyContext.GetBody(action)
+		return base64.RawURLEncoding.EncodeToString(bodyArray)
 	default:
 		return ""
 	}

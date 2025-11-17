@@ -2,13 +2,11 @@ package keys_load
 
 import (
 	"crypto/rsa"
+	"crypto/x509"
 	"encoding/base64"
-	"encoding/pem"
 	"fmt"
 	"wrench/app"
 	"wrench/app/manifest/application_settings"
-
-	"github.com/youmark/pkcs8"
 )
 
 var privateKeys map[string]*rsa.PrivateKey
@@ -22,7 +20,7 @@ func LoadKeys() {
 	}
 
 	for _, key := range settings.Keys {
-		_, err := LoadEncryptedPrivateKey(key.Id, key.PrivateRsaKeysBase64, key.Passphrase)
+		_, err := LoadEncryptedPrivateKey(key.Id, key.PrivateRsaKeyDERBase64, key.Passphrase)
 		addIfErrorKey(err)
 	}
 }
@@ -34,26 +32,20 @@ func addIfErrorKey(err error) {
 	}
 }
 
-func LoadEncryptedPrivateKey(keyId, privateRsakeyBase64, passphrase string) (*rsa.PrivateKey, error) {
+func LoadEncryptedPrivateKey(keyId, privateRsakeyDERBase64, passphrase string) (*rsa.PrivateKey, error) {
 
 	if privateKeys == nil {
 		privateKeys = make(map[string]*rsa.PrivateKey)
 	}
 
-	pemBytes, err := base64.StdEncoding.DecodeString(privateRsakeyBase64)
+	derBytes, err := base64.StdEncoding.DecodeString(privateRsakeyDERBase64)
 	if err != nil {
 		return nil, fmt.Errorf("read key: %w", err)
 	}
 
-	block, _ := pem.Decode(pemBytes)
-	if block == nil {
-		return nil, fmt.Errorf("no PEM block")
-	}
-
-	// Parse & decrypt PKCS#8 with passphrase
-	key, err := pkcs8.ParsePKCS8PrivateKey(block.Bytes, []byte(passphrase))
+	key, err := x509.ParsePKCS8PrivateKey(derBytes)
 	if err != nil {
-		return nil, fmt.Errorf("parse pkcs8: %w", err)
+		return nil, fmt.Errorf("parse key: %w", err)
 	}
 
 	rsaKey, ok := key.(*rsa.PrivateKey)
