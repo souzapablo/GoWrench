@@ -5,11 +5,34 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
+	"wrench/app"
+	"wrench/app/manifest/application_settings"
 
 	"github.com/youmark/pkcs8"
 )
 
 var privateKeys map[string]*rsa.PrivateKey
+var ErrorLoadKeys []error
+
+func LoadKeys() {
+	settings := application_settings.ApplicationSettingsStatic
+
+	if settings.Keys == nil {
+		return
+	}
+
+	for _, key := range settings.Keys {
+		_, err := LoadEncryptedPrivateKey(key.Id, key.PrivateRsaKeysBase64, key.Passphrase)
+		addIfErrorKey(err)
+	}
+}
+
+func addIfErrorKey(err error) {
+	if err != nil {
+		app.LogError2("Error connections: %v", err)
+		ErrorLoadKeys = append(ErrorLoadKeys, err)
+	}
+}
 
 func LoadEncryptedPrivateKey(keyId, privateRsakeyBase64, passphrase string) (*rsa.PrivateKey, error) {
 

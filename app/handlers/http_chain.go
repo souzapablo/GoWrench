@@ -137,6 +137,13 @@ func buildChainToAction(currentHandler Handler, settings *settings.ApplicationSe
 		currentHandler = funcHashHandler
 	}
 
+	if action.Type == action_settings.ActionTypeFuncSignature {
+		funcSignHandler := new(FuncSignatureHandler)
+		funcSignHandler.ActionSettings = action
+		currentHandler.SetNext(funcSignHandler)
+		currentHandler = funcSignHandler
+	}
+
 	if action.Type == action_settings.ActionTypeFuncVarContext {
 		funcVarHandler := new(FuncVarContextHandler)
 		funcVarHandler.ActionSettings = action

@@ -7,6 +7,7 @@ import (
 	"wrench/app/cross_validation"
 	"wrench/app/manifest/application_settings"
 	"wrench/app/startup/connections"
+	keys_load "wrench/app/startup/keys"
 	"wrench/app/startup/token_credentials"
 )
 
@@ -42,6 +43,10 @@ func (page *InitialPage) HealthCheckEndpoint(w http.ResponseWriter, r *http.Requ
 
 	if connections.ErrorLoadConnections != nil {
 		errors = append(errors, connections.ErrorLoadConnections...)
+	}
+
+	if keys_load.ErrorLoadKeys != nil {
+		errors = append(errors, keys_load.ErrorLoadKeys...)
 	}
 
 	if bodyHcResult == nil {
