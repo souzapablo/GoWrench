@@ -41,6 +41,7 @@ const (
 	ActionTypeNatsPublish           ActionType = "natsPublish"
 	ActionTypeKafkaProducer         ActionType = "kafkaProducer"
 	ActionTypeFuncHash              ActionType = "funcHash"
+	ActionTypeFuncSignature         ActionType = "funcSignature"
 	ActionTypeFuncVarContext        ActionType = "funcVarContext"
 	ActionTypeFuncStringConcatenate ActionType = "funcStringConcatenate"
 	ActionTypeFuncGeneral           ActionType = "funcGeneral"
@@ -65,6 +66,7 @@ func (setting *ActionSettings) Valid() validation.ValidateResult {
 			setting.Type == ActionTypeNatsPublish ||
 			setting.Type == ActionTypeKafkaProducer ||
 			setting.Type == ActionTypeFuncHash ||
+			setting.Type == ActionTypeFuncSignature ||
 			setting.Type == ActionTypeFuncVarContext ||
 			setting.Type == ActionTypeFuncStringConcatenate ||
 			setting.Type == ActionTypeFuncGeneral ||
@@ -182,6 +184,8 @@ func (setting *ActionSettings) checkTypes() validation.ValidateResult {
 				result.AddError(fmt.Sprintf("actions[%v].func.concatenate is required when type is %v", setting.Id, setting.Type))
 			} else if setting.Type == ActionTypeFuncHash && setting.Func.Hash == nil {
 				result.AddError(fmt.Sprintf("actions[%v].func.hash is required when type is %v", setting.Id, setting.Type))
+			} else if setting.Type == ActionTypeFuncSignature && setting.Func.Sign == nil {
+				result.AddError(fmt.Sprintf("actions[%v].func.sign is required when type is %v", setting.Id, setting.Type))
 			} else if setting.Type == ActionTypeFuncGeneral && len(setting.Func.Command) == 0 {
 				result.AddError(fmt.Sprintf("actions[%v].func.command is required when type is %v", setting.Id, setting.Type))
 			}

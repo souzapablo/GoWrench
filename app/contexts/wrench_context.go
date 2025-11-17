@@ -76,3 +76,9 @@ func (wrenchContext *WrenchContext) GetContext(traceId string) context.Context {
 		return context.Background()
 	}
 }
+
+func (wrenchContext *WrenchContext) SetHasError3(span trace.Span, msg string, err error, httpStatusCode int, bodyContext *BodyContext) {
+	wrenchContext.SetHasError(span, msg, err)
+	bodyContext.HttpStatusCode = httpStatusCode
+	bodyContext.SetBody([]byte(msg))
+}

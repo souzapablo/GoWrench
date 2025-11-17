@@ -6,6 +6,7 @@ import (
 	"wrench/app/manifest/application_settings"
 	"wrench/app/manifest/connection_settings"
 	"wrench/app/manifest/idemp_settings"
+	"wrench/app/manifest/key_settings"
 	"wrench/app/manifest/rate_limit_settings"
 	"wrench/app/manifest/service_settings"
 	"wrench/app/manifest/token_credential_settings"
@@ -112,4 +113,17 @@ func GetDynamoDbTableSettings(tableId string) (*connection_settings.DynamoDbTabl
 	}
 
 	return tableResult, err
+}
+
+func GetPrivateKeyById(keyId string) (*key_settings.KeySettings, error) {
+	appSetting := application_settings.ApplicationSettingsStatic
+	if len(appSetting.Keys) > 0 {
+		for _, key := range appSetting.Keys {
+			if key.Id == keyId {
+				return key, nil
+			}
+		}
+
+	}
+	return nil, fmt.Errorf("private key %s not found", keyId)
 }

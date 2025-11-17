@@ -2,6 +2,7 @@ package contexts
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"wrench/app/manifest/action_settings"
 )
@@ -34,12 +35,18 @@ func (bodyContext *BodyContext) SetBodyAction(settings *action_settings.ActionSe
 	}
 }
 
-func (bodyContext *BodyContext) GetBodyPreserved(id string) []byte {
+func (bodyContext *BodyContext) GetBodyPreserved(id string) ([]byte, error) {
 	if bodyContext.BodyPreserved == nil {
-		return nil
+		return nil, fmt.Errorf("no preserved bodies available")
 	}
 
-	return bodyContext.BodyPreserved[id]
+	value, ok := bodyContext.BodyPreserved[id]
+
+	if !ok {
+		return nil, fmt.Errorf("no preserved body found for action id %s", id)
+	} else {
+		return value, nil
+	}
 }
 
 func (bodyContext *BodyContext) IsArray() bool {
@@ -81,7 +88,7 @@ func (bodyContext *BodyContext) ParseBodyToMapObject() map[string]interface{} {
 
 func (bodyContext *BodyContext) ParseBodyToMapObjectPreserved(actionId string) map[string]interface{} {
 	var jsonMap map[string]interface{}
-	bodyBytePreserved := bodyContext.GetBodyPreserved(actionId)
+	bodyBytePreserved, _ := bodyContext.GetBodyPreserved(actionId)
 	jsonErr := json.Unmarshal(bodyBytePreserved, &jsonMap)
 
 	if jsonErr != nil {
@@ -123,37 +130,41 @@ func (bodyContext *BodyContext) GetBodyString() string {
 	return string(bodyContext.CurrentBodyByteArray)
 }
 
-func (bodyContext *BodyContext) GetBody(settings *action_settings.ActionSettings) []byte {
+func (bodyContext *BodyContext) GetBody(settings *action_settings.ActionSettings) ([]byte, error) {
 
 	if settings == nil {
-		return bodyContext.CurrentBodyByteArray
+		return bodyContext.CurrentBodyByteArray, nil
 	}
 
 	shouldUse, bodyRef := settings.ShouldUseBodyRef()
 
-	if shouldUse {
+	if shouldUse && bodyRef != "{{bodyContext.currentBody}}" {
 		bodyRef = ReplaceCalculatedValue(bodyRef)
 		bodyRef = ReplacePrefixBodyContextPreserved(bodyRef)
 		return bodyContext.GetBodyPreserved(bodyRef)
 	} else {
-		return bodyContext.CurrentBodyByteArray
+		return bodyContext.CurrentBodyByteArray, nil
 	}
 }
 
-func (bodyContext *BodyContext) GetBodyMap(settings *action_settings.ActionSettings) map[string]interface{} {
-	bodyArray := bodyContext.GetBody(settings)
+func (bodyContext *BodyContext) GetBodyMap(settings *action_settings.ActionSettings) (map[string]interface{}, error) {
+	bodyArray, err := bodyContext.GetBody(settings)
+
+	if err != nil {
+		return nil, err
+	}
 
 	if len(bodyArray) > 0 {
 		var jsonMap map[string]interface{}
 		jsonErr := json.Unmarshal(bodyArray, &jsonMap)
 
 		if jsonErr != nil {
-			return nil
+			return nil, jsonErr
 		}
-		return jsonMap
+		return jsonMap, nil
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (bodyContext *BodyContext) GetCurrentBody() []byte {

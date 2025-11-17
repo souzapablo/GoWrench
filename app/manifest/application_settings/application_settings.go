@@ -6,6 +6,7 @@ import (
 	"log"
 	"wrench/app/manifest/action_settings"
 	"wrench/app/manifest/api_settings"
+	"wrench/app/manifest/key_settings"
 	"wrench/app/manifest/rate_limit_settings"
 
 	"wrench/app/manifest/connection_settings"
@@ -29,6 +30,7 @@ type ApplicationSettings struct {
 	TokenCredentials []*credential.TokenCredentialSetting     `yaml:"tokenCredentials"`
 	Idemps           []*idemp_settings.IdempSettings          `yaml:"idemps"`
 	RateLimits       []*rate_limit_settings.RateLimitSettings `yaml:"rateLimits"`
+	Keys             []*key_settings.KeySettings              `yaml:"keys"`
 }
 
 func (settings *ApplicationSettings) GetActionById(actionId string) (*action_settings.ActionSettings, error) {
@@ -92,6 +94,12 @@ func (settings *ApplicationSettings) Valid() validation.ValidateResult {
 
 	if settings.RateLimits != nil {
 		for _, validable := range settings.RateLimits {
+			result.AppendValidable(validable)
+		}
+	}
+
+	if settings.Keys != nil {
+		for _, validable := range settings.Keys {
 			result.AppendValidable(validable)
 		}
 	}
@@ -165,6 +173,14 @@ func (settings *ApplicationSettings) Merge(toMerge *ApplicationSettings) error {
 			settings.RateLimits = toMerge.RateLimits
 		} else {
 			settings.RateLimits = append(settings.RateLimits, toMerge.RateLimits...)
+		}
+	}
+
+	if len(toMerge.Keys) > 0 {
+		if len(settings.Keys) == 0 {
+			settings.Keys = toMerge.Keys
+		} else {
+			settings.Keys = append(settings.Keys, toMerge.Keys...)
 		}
 	}
 
