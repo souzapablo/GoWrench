@@ -70,7 +70,7 @@ func (handler *FuncSignatureHandler) signBodyRSA_SHA256(priv *rsa.PrivateKey, bo
 	// algorithm is RS256, which is defined as PKCS#1 v1.5 with SHA-256.
 	// This is used for signatures only (not encryption), and is required
 	// for compatibility with jwt.io and other RS256 consumers.
-	// NOSONAR: <rule-id> S5542: Signature algorithms should not be vulnerable to forgery
+	// NOSONAR: S5542
 	sig, err := rsa.SignPKCS1v15(rand.Reader, priv, crypto.SHA256, hash[:])
 	if err != nil {
 		return nil, err
