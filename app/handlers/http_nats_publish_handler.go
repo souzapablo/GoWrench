@@ -32,7 +32,6 @@ func (handler *NatsPublishHandler) Do(ctx context.Context, wrenchContext *contex
 		natsConn := connections.GetNatsConnectionById(settings.Nats.ConnectionId)
 		data, err := bodyContext.GetBody(settings)
 		if err != nil {
-
 			wrenchContext.SetHasError3(span, "error getting body for nats publish", err, 500, bodyContext)
 		} else {
 
@@ -54,9 +53,7 @@ func (handler *NatsPublishHandler) Do(ctx context.Context, wrenchContext *contex
 				bodyContext.SetBodyPreserved(settings.Id, []byte(""))
 			} else {
 				if err != nil {
-					wrenchContext.SetHasError(span, "error nats publish message", err)
-					bodyContext.HttpStatusCode = 500
-					bodyContext.SetBody([]byte(err.Error()))
+					wrenchContext.SetHasError3(span, "error nats publish message", err, 500, bodyContext)
 				} else {
 					bodyContext.HttpStatusCode = 204
 					bodyContext.SetBody([]byte(""))
