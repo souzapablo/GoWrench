@@ -19,12 +19,10 @@ api:
 actions:
   - id: func_sign
     type: funcSignature
-    body:
-      preserveCurrentBody: true
-      use: "{{bodyContext.actions.func_concate}}"
     func:
       sign:
         keyId: private_carat
+        algorithm: SHA-256
         
 
 

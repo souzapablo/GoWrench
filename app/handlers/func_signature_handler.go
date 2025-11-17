@@ -2,8 +2,16 @@ package handlers
 
 import (
 	"context"
+	"crypto"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
+	"encoding/base64"
+	"fmt"
 	contexts "wrench/app/contexts"
 	settings "wrench/app/manifest/action_settings"
+	"wrench/app/manifest/types"
+	keys_load "wrench/app/startup/keys"
 )
 
 type FuncSignatureHandler struct {
@@ -19,11 +27,26 @@ func (handler *FuncSignatureHandler) Do(ctx context.Context, wrenchContext *cont
 		ctx = ctxSpan
 		defer span.End()
 
-		//signSetting := handler.ActionSettings.Func.Sign
+		signSetting := handler.ActionSettings.Func.Sign
+		priv, err := keys_load.GetPrivateKey(signSetting.KeyId)
+		if err != nil {
+			wrenchContext.SetHasError3(span, err.Error(), err, 500, bodyContext)
+		} else {
+			var sig string
+			var err error
 
-		// rsa, error :=
+			if signSetting.Algorithm == types.HashAlgSHA256 {
+				sig, err = handler.signBodyRSA_SHA256(priv, bodyContext.GetBody(handler.ActionSettings))
+			} else {
+				wrenchContext.SetHasError3(span, fmt.Sprintf("action %s algorithm %s not supported", handler.ActionSettings.Id, types.HashAlgSHA256), err, 400, bodyContext)
+			}
 
-		// 	bodyContext.SetBodyAction(handler.ActionSettings, []byte(signatureValue))
+			if err != nil {
+				wrenchContext.SetHasError3(span, err.Error(), err, 500, bodyContext)
+			} else {
+				bodyContext.SetBodyAction(handler.ActionSettings, []byte(sig))
+			}
+		}
 	}
 	if handler.Next != nil {
 		handler.Next.Do(ctx, wrenchContext, bodyContext)
@@ -32,4 +55,17 @@ func (handler *FuncSignatureHandler) Do(ctx context.Context, wrenchContext *cont
 
 func (handler *FuncSignatureHandler) SetNext(next Handler) {
 	handler.Next = next
+}
+
+func (handler *FuncSignatureHandler) signBodyRSA_SHA256(priv *rsa.PrivateKey, body []byte) (string, error) {
+	// 1) Hash the body
+	hash := sha256.Sum256(body)
+
+	// 2) Sign the hash with RSA PKCS#1 v1.5 using SHA-256
+	sig, err := rsa.SignPKCS1v15(rand.Reader, priv, crypto.SHA256, hash[:])
+	if err != nil {
+		return "", err
+	}
+	// 3) Encode as base64 (good for HTTP headers)
+	return base64.StdEncoding.EncodeToString(sig), nil
 }
