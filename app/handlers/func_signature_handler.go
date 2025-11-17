@@ -65,6 +65,12 @@ func (handler *FuncSignatureHandler) signBodyRSA_SHA256(priv *rsa.PrivateKey, bo
 	hash := sha256.Sum256(body)
 
 	// 2) Sign the hash with RSA PKCS#1 v1.5 using SHA-256
+
+	// NOTE: We must use RSASSA-PKCS1-v1_5 (rsa.SignPKCS1v15) here because the JWT
+	// algorithm is RS256, which is defined as PKCS#1 v1.5 with SHA-256.
+	// This is used for signatures only (not encryption), and is required
+	// for compatibility with jwt.io and other RS256 consumers.
+	// NOSONAR: <rule-id> S5542: Signature algorithms should not be vulnerable to forgery
 	sig, err := rsa.SignPKCS1v15(rand.Reader, priv, crypto.SHA256, hash[:])
 	if err != nil {
 		return nil, err
