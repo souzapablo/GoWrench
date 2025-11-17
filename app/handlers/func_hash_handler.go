@@ -20,13 +20,17 @@ func (handler *FuncHashHandler) Do(ctx context.Context, wrenchContext *contexts.
 		ctxSpan, span := wrenchContext.GetSpan(ctx, *handler.ActionSettings)
 		ctx = ctxSpan
 		defer span.End()
+		body, err := bodyContext.GetBody(handler.ActionSettings)
+		if err != nil {
+			wrenchContext.SetHasError3(span, err.Error(), err, 500, bodyContext)
+		} else {
+			key := contexts.GetCalculatedValue(handler.ActionSettings.Func.Hash.Key, wrenchContext, bodyContext, handler.ActionSettings)
+			hashType := cross_funcs.GetHashFunc(handler.ActionSettings.Func.Hash.Alg)
+			currentBody := body
 
-		key := contexts.GetCalculatedValue(handler.ActionSettings.Func.Hash.Key, wrenchContext, bodyContext, handler.ActionSettings)
-		hashType := cross_funcs.GetHashFunc(handler.ActionSettings.Func.Hash.Alg)
-		currentBody := bodyContext.GetBody(handler.ActionSettings)
-
-		hashValue := cross_funcs.GetHash(fmt.Sprint(key), hashType, currentBody)
-		bodyContext.SetBodyAction(handler.ActionSettings, []byte(hashValue))
+			hashValue := cross_funcs.GetHash(fmt.Sprint(key), hashType, currentBody)
+			bodyContext.SetBodyAction(handler.ActionSettings, []byte(hashValue))
+		}
 	}
 
 	if handler.Next != nil {

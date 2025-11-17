@@ -65,7 +65,7 @@ actions:
     type: funcSignature
     body:
       preserveCurrentBody: true
-      use: "{{bodyContext.actions.func_concate}}"
+      use: "{{bodyContext.actions.func_concate_header_body}}"
     func:
       sign:
         keyId: private_carat

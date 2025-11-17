@@ -30,49 +30,55 @@ func (handler *HttpRequestClientHandler) Do(ctx context.Context, wrenchContext *
 		ctx, span := wrenchContext.GetSpan(ctx, *handler.ActionSettings)
 		defer span.End()
 
-		request := new(client.HttpClientRequestData)
-		request.Body = bodyContext.GetBody(handler.ActionSettings)
-		request.Method = handler.getMethod(wrenchContext)
-		request.Url = handler.getUrl(wrenchContext, bodyContext)
-		request.Insecure = handler.ActionSettings.Http.Request.Insecure
-		request.SetHeaderTracestate(ctx)
-		request.SetHeaders(contexts.GetCalculatedMap(handler.ActionSettings.Http.Request.Headers, wrenchContext, bodyContext, handler.ActionSettings))
+		body, _err := bodyContext.GetBody(handler.ActionSettings)
+		if _err != nil {
+			wrenchContext.SetHasError3(span, "error getting body for http client request", _err, 500, bodyContext)
+		} else {
 
-		if len(handler.ActionSettings.Http.Request.TokenCredentialId) > 0 {
-			tokenData := token_credentials.GetTokenCredentialById(handler.ActionSettings.Http.Request.TokenCredentialId)
-			span.SetAttributes(attribute.String("gowrench.tokenCredentials.id", handler.ActionSettings.Http.Request.TokenCredentialId))
-			if tokenData != nil {
-				bearerToken := strings.Trim(fmt.Sprintf("%s %s", tokenData.TokenType, tokenData.AccessToken), " ")
-				if len(tokenData.HeaderName) == 0 {
-					request.SetHeader("Authorization", bearerToken)
-				} else {
-					request.SetHeader(tokenData.HeaderName, bearerToken)
+			request := new(client.HttpClientRequestData)
+			request.Body = body
+			request.Method = handler.getMethod(wrenchContext)
+			request.Url = handler.getUrl(wrenchContext, bodyContext)
+			request.Insecure = handler.ActionSettings.Http.Request.Insecure
+			request.SetHeaderTracestate(ctx)
+			request.SetHeaders(contexts.GetCalculatedMap(handler.ActionSettings.Http.Request.Headers, wrenchContext, bodyContext, handler.ActionSettings))
+
+			if len(handler.ActionSettings.Http.Request.TokenCredentialId) > 0 {
+				tokenData := token_credentials.GetTokenCredentialById(handler.ActionSettings.Http.Request.TokenCredentialId)
+				span.SetAttributes(attribute.String("gowrench.tokenCredentials.id", handler.ActionSettings.Http.Request.TokenCredentialId))
+				if tokenData != nil {
+					bearerToken := strings.Trim(fmt.Sprintf("%s %s", tokenData.TokenType, tokenData.AccessToken), " ")
+					if len(tokenData.HeaderName) == 0 {
+						request.SetHeader("Authorization", bearerToken)
+					} else {
+						request.SetHeader(tokenData.HeaderName, bearerToken)
+					}
 				}
 			}
-		}
 
-		response, err := client.HttpClientDo(ctx, request)
+			response, err := client.HttpClientDo(ctx, request)
 
-		if err != nil {
-			wrenchContext.SetHasError(span, "error to call server client", err)
-		} else {
-			if response.StatusCode > 399 {
-				wrenchContext.SetHasError(span, "server client return one error", err)
+			if err != nil {
+				wrenchContext.SetHasError(span, "error to call server client", err)
+			} else {
+				if response.StatusCode > 399 {
+					wrenchContext.SetHasError(span, "server client return one error", err)
+				}
+
+				bodyContext.SetBodyAction(handler.ActionSettings, response.Body)
+
+				bodyContext.HttpStatusCode = response.StatusCode
+				if handler.ActionSettings.Http.Response != nil {
+					bodyContext.SetHeaders(handler.ActionSettings.Http.Response.MapFixedHeaders)
+					bodyContext.SetHeaders(mapHttpResponseHeaders(response, handler.ActionSettings.Http.Response.MapResponseHeaders))
+				}
 			}
 
-			bodyContext.SetBodyAction(handler.ActionSettings, response.Body)
+			handler.setTraceSpanAttributes(span, response.StatusCode, request.Url, request.Method, request.Insecure)
 
-			bodyContext.HttpStatusCode = response.StatusCode
-			if handler.ActionSettings.Http.Response != nil {
-				bodyContext.SetHeaders(handler.ActionSettings.Http.Response.MapFixedHeaders)
-				bodyContext.SetHeaders(mapHttpResponseHeaders(response, handler.ActionSettings.Http.Response.MapResponseHeaders))
-			}
+			duration := time.Since(start).Seconds() * 1000
+			handler.metricRecord(ctx, duration, response.StatusCode, request.Url, request.Method)
 		}
-
-		handler.setTraceSpanAttributes(span, response.StatusCode, request.Url, request.Method, request.Insecure)
-
-		duration := time.Since(start).Seconds() * 1000
-		handler.metricRecord(ctx, duration, response.StatusCode, request.Url, request.Method)
 	}
 
 	if handler.Next != nil {

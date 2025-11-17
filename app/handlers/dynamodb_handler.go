@@ -57,38 +57,44 @@ func (handler *DynamoDbHandler) Do(ctx context.Context, wrenchContext *contexts.
 		ctx, span := wrenchContext.GetSpan(ctx, *handler.ActionSettings)
 		defer span.End()
 
-		item, err := attributevalue.MarshalMap(bodyContext.GetBodyMap(handler.ActionSettings))
-
+		body, err := bodyContext.GetBody(handler.ActionSettings)
 		if err != nil {
-			handler.setError(wrenchContext, bodyContext, span, 500, err.Error(), err)
+			handler.setError(wrenchContext, bodyContext, span, 500, "error getting body for dynamodb operation", err)
 		} else {
-			var result dynamoDbCommandResult
-			if handler.ActionSettings.DynamoDb.Command == dynamodb_settings.DynamoDbCommandCreate {
-				result = handler.createCommand(ctx, wrenchContext, bodyContext, item)
-			} else if handler.ActionSettings.DynamoDb.Command == dynamodb_settings.DynamoDbCommandUpdate {
-				result = handler.updateCommand(ctx, wrenchContext, bodyContext, item)
-			} else if handler.ActionSettings.DynamoDb.Command == dynamodb_settings.DynamoDbCommandCreateOrUpdate {
-				result = handler.createOrUpdateCommand(ctx, bodyContext, item)
-			} else if handler.ActionSettings.DynamoDb.Command == dynamodb_settings.DynamoDbCommandDelete {
-				result = handler.deleteCommand(ctx, wrenchContext, bodyContext)
-			} else if handler.ActionSettings.DynamoDb.Command == dynamodb_settings.DynamoDbCommandGet {
-				result = handler.getCommand(ctx, wrenchContext, bodyContext)
+
+			item, err := attributevalue.MarshalMap(body)
+
+			if err != nil {
+				handler.setError(wrenchContext, bodyContext, span, 500, err.Error(), err)
 			} else {
-				result.ErrorMessage = fmt.Sprintf("The command %v is not implemented yet", handler.ActionSettings.DynamoDb.Command)
-				result.Error = errors.New(result.ErrorMessage)
-				result.HttpStatusCode = 500
+				var result dynamoDbCommandResult
+				if handler.ActionSettings.DynamoDb.Command == dynamodb_settings.DynamoDbCommandCreate {
+					result = handler.createCommand(ctx, wrenchContext, bodyContext, item)
+				} else if handler.ActionSettings.DynamoDb.Command == dynamodb_settings.DynamoDbCommandUpdate {
+					result = handler.updateCommand(ctx, wrenchContext, bodyContext, item)
+				} else if handler.ActionSettings.DynamoDb.Command == dynamodb_settings.DynamoDbCommandCreateOrUpdate {
+					result = handler.createOrUpdateCommand(ctx, bodyContext, item)
+				} else if handler.ActionSettings.DynamoDb.Command == dynamodb_settings.DynamoDbCommandDelete {
+					result = handler.deleteCommand(ctx, wrenchContext, bodyContext)
+				} else if handler.ActionSettings.DynamoDb.Command == dynamodb_settings.DynamoDbCommandGet {
+					result = handler.getCommand(ctx, wrenchContext, bodyContext)
+				} else {
+					result.ErrorMessage = fmt.Sprintf("The command %v is not implemented yet", handler.ActionSettings.DynamoDb.Command)
+					result.Error = errors.New(result.ErrorMessage)
+					result.HttpStatusCode = 500
+				}
+
+				if result.IsSuccess() {
+					bodyContext.HttpStatusCode = result.HttpStatusCode
+					bodyContext.SetBodyAction(handler.ActionSettings, result.Body)
+				} else {
+					handler.setError(wrenchContext, bodyContext, span, result.HttpStatusCode, result.ErrorMessage, result.Error)
+				}
 			}
 
-			if result.IsSuccess() {
-				bodyContext.HttpStatusCode = result.HttpStatusCode
-				bodyContext.SetBodyAction(handler.ActionSettings, result.Body)
-			} else {
-				handler.setError(wrenchContext, bodyContext, span, result.HttpStatusCode, result.ErrorMessage, result.Error)
-			}
+			duration := time.Since(start).Seconds() * 1000
+			handler.metricRecord(ctx, duration, 200, string(handler.ActionSettings.DynamoDb.Command), handler.TableConnection.TableName)
 		}
-
-		duration := time.Since(start).Seconds() * 1000
-		handler.metricRecord(ctx, duration, 200, string(handler.ActionSettings.DynamoDb.Command), handler.TableConnection.TableName)
 	}
 
 	if handler.Next != nil {
@@ -132,7 +138,11 @@ func (handler *DynamoDbHandler) createCommand(ctx context.Context, wrenchContext
 		})
 
 		if err == nil {
-			return createDynamoDbCommandResultSuccess(201, bodyContext.GetBody(handler.ActionSettings))
+			body, err := bodyContext.GetBody(handler.ActionSettings)
+			if err != nil {
+				return createDynamoDbCommandResultError(500, "error getting body for dynamodb operation", err)
+			}
+			return createDynamoDbCommandResultSuccess(201, body)
 		} else {
 			return createDynamoDbCommandResultError(500, fmt.Sprintf("Couldn't add item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err), err)
 		}
@@ -161,7 +171,11 @@ func (handler *DynamoDbHandler) updateCommand(ctx context.Context, wrenchContext
 		})
 
 		if err == nil {
-			return createDynamoDbCommandResultSuccess(200, bodyContext.GetBody(handler.ActionSettings))
+			body, err := bodyContext.GetBody(handler.ActionSettings)
+			if err != nil {
+				return createDynamoDbCommandResultError(500, "error getting body for dynamodb operation", err)
+			}
+			return createDynamoDbCommandResultSuccess(200, body)
 		} else {
 			return createDynamoDbCommandResultError(500, fmt.Sprintf("Couldn't update item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err), err)
 		}
@@ -174,7 +188,11 @@ func (handler *DynamoDbHandler) createOrUpdateCommand(ctx context.Context, bodyC
 	})
 
 	if err == nil {
-		return createDynamoDbCommandResultSuccess(200, bodyContext.GetBody(handler.ActionSettings))
+		body, err := bodyContext.GetBody(handler.ActionSettings)
+		if err != nil {
+			return createDynamoDbCommandResultError(500, "error getting body for dynamodb operation", err)
+		}
+		return createDynamoDbCommandResultSuccess(200, body)
 	} else {
 		return createDynamoDbCommandResultError(500, fmt.Sprintf("Couldn't update item in table %v. Here's why: %v\n", handler.TableConnection.TableName, err), err)
 	}

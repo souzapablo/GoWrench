@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
-	"encoding/base64"
 	"fmt"
 	contexts "wrench/app/contexts"
 	settings "wrench/app/manifest/action_settings"
@@ -32,19 +31,23 @@ func (handler *FuncSignatureHandler) Do(ctx context.Context, wrenchContext *cont
 		if err != nil {
 			wrenchContext.SetHasError3(span, err.Error(), err, 500, bodyContext)
 		} else {
-			var sig string
-			var err error
-
-			if signSetting.Algorithm == types.HashAlgSHA256 {
-				sig, err = handler.signBodyRSA_SHA256(priv, bodyContext.GetBody(handler.ActionSettings))
-			} else {
-				wrenchContext.SetHasError3(span, fmt.Sprintf("action %s algorithm %s not supported", handler.ActionSettings.Id, types.HashAlgSHA256), err, 400, bodyContext)
-			}
+			var sig []byte
+			body, err := bodyContext.GetBody(handler.ActionSettings)
 
 			if err != nil {
 				wrenchContext.SetHasError3(span, err.Error(), err, 500, bodyContext)
 			} else {
-				bodyContext.SetBodyAction(handler.ActionSettings, []byte(sig))
+				if signSetting.Algorithm == types.HashAlgSHA256 {
+					sig, err = handler.signBodyRSA_SHA256(priv, body)
+				} else {
+					wrenchContext.SetHasError3(span, fmt.Sprintf("action %s algorithm %s not supported", handler.ActionSettings.Id, types.HashAlgSHA256), err, 400, bodyContext)
+				}
+
+				if err != nil {
+					wrenchContext.SetHasError3(span, err.Error(), err, 500, bodyContext)
+				} else {
+					bodyContext.SetBodyAction(handler.ActionSettings, sig)
+				}
 			}
 		}
 	}
@@ -57,15 +60,15 @@ func (handler *FuncSignatureHandler) SetNext(next Handler) {
 	handler.Next = next
 }
 
-func (handler *FuncSignatureHandler) signBodyRSA_SHA256(priv *rsa.PrivateKey, body []byte) (string, error) {
+func (handler *FuncSignatureHandler) signBodyRSA_SHA256(priv *rsa.PrivateKey, body []byte) ([]byte, error) {
 	// 1) Hash the body
 	hash := sha256.Sum256(body)
 
 	// 2) Sign the hash with RSA PKCS#1 v1.5 using SHA-256
 	sig, err := rsa.SignPKCS1v15(rand.Reader, priv, crypto.SHA256, hash[:])
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	// 3) Encode as base64 (good for HTTP headers)
-	return base64.StdEncoding.EncodeToString(sig), nil
+	return sig, nil
 }

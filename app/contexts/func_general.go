@@ -8,18 +8,22 @@ import (
 	"wrench/app/manifest/action_settings/func_settings"
 )
 
-func GetFuncValue(funcType func_settings.FuncGeneralType, wrenchContext *WrenchContext, bodyContext *BodyContext, action *settings.ActionSettings) string {
+func GetFuncValue(funcType func_settings.FuncGeneralType, wrenchContext *WrenchContext, bodyContext *BodyContext, action *settings.ActionSettings) (string, error) {
+
+	body, err := bodyContext.GetBody(action)
+	if err != nil {
+		return "", err
+	}
+
 	switch funcType {
 	case func_settings.FuncTypeTimestampMilli:
-		return getTimestamp()
+		return getTimestamp(), nil
 	case func_settings.FuncTypeBase64Encode:
-		bodyArray := bodyContext.GetBody(action)
-		return base64.StdEncoding.EncodeToString(bodyArray)
+		return base64.StdEncoding.EncodeToString(body), nil
 	case func_settings.FuncTypeBase64UrlEncode:
-		bodyArray := bodyContext.GetBody(action)
-		return base64.RawURLEncoding.EncodeToString(bodyArray)
+		return base64.RawURLEncoding.EncodeToString(body), nil
 	default:
-		return ""
+		return "", nil
 	}
 }
 
