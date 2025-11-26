@@ -3,7 +3,6 @@ package contexts
 import (
 	"encoding/json"
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -344,12 +343,13 @@ func FormatValues(jsonMap map[string]interface{}, format *maps.FormatSettings) (
 }
 
 func ApplyScale(jsonMap map[string]interface{}, cfg *maps.ScaleSettings) (map[string]interface{}, error) {
+    if cfg == nil {
+        return jsonMap, nil
+    }
 
     applyList := func(list []string, op string) error {
         for _, field := range list {
-            parts := strings.Split(field, ":")
-            fieldName := parts[0]
-            number, err := strconv.ParseFloat(parts[1], 64)
+            fieldName, factor, err := parseField(field)
             if err != nil {
                 return err
             }
@@ -359,61 +359,64 @@ func ApplyScale(jsonMap map[string]interface{}, cfg *maps.ScaleSettings) (map[st
                 return fmt.Errorf("field '%s' not found", fieldName)
             }
 
-            var v float64
-            switch x := value.(type) {
-            case float64:
-                v = x
-            case float32:
-                v = float64(x)
-            case int:
-                v = float64(x)
-            case int64:
-                v = float64(x)
-            case json.Number:
-                v, err = x.Float64()
-                if err != nil {
-                    return fmt.Errorf("field '%s' is not numeric: %v", fieldName, err)
-                }
-            case string:
-                s := strings.TrimSpace(x)
-                v, err = strconv.ParseFloat(s, 64)
-                if err != nil {
-                    return fmt.Errorf("field '%s' is not numeric: %v", fieldName, err)
-                }
-            default:
-                return fmt.Errorf("field '%s' is not numeric", fieldName)
+            numericValue, err := toFloat(fieldName, value)
+            if err != nil {
+                return err
             }
 
-            switch op {
-            case "up":
-                v *= number
-            case "down":
-                if number == 0 {
-                    return fmt.Errorf("division by zero")
+            if op == "up" {
+                numericValue *= factor
+            } else { 
+                if factor == 0 {
+                    return fmt.Errorf("division by zero for '%s'", fieldName)
                 }
-                v /= number
+                numericValue /= factor
             }
-			
-            var result interface{} = v
-            if math.Trunc(v) == v {
-                result = int64(v)
-            }
-            json_map.CreateProperty(jsonMapResult, fieldName, result)
+
+            json_map.CreateProperty(jsonMapResult, fieldName, numericValue)
         }
         return nil
-    }
-
-    if cfg == nil {
-        return jsonMap, nil
     }
 
     if err := applyList(cfg.Up, "up"); err != nil {
         return nil, err
     }
-
     if err := applyList(cfg.Down, "down"); err != nil {
         return nil, err
     }
 
     return jsonMap, nil
+}
+
+func parseField(field string) (string, float64, error) {
+    parts := strings.Split(field, ":")
+    if len(parts) != 2 {
+        return "", 0, fmt.Errorf("invalid field format '%s'", field)
+    }
+
+    factor, err := strconv.ParseFloat(parts[1], 64)
+    if err != nil {
+        return "", 0, fmt.Errorf("invalid factor in '%s': %v", field, err)
+    }
+
+    return parts[0], factor, nil
+}
+
+func toFloat(field string, value interface{}) (float64, error) {
+    switch x := value.(type) {
+    case float64:
+        return x, nil
+    case float32:
+        return float64(x), nil
+    case int:
+        return float64(x), nil
+    case int64:
+        return float64(x), nil
+    case json.Number:
+        return x.Float64()
+    case string:
+        return strconv.ParseFloat(strings.TrimSpace(x), 64)
+    default:
+        return 0, fmt.Errorf("field '%s' is not numeric", field)
+    }
 }
