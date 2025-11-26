@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 	auth_jwt "wrench/app/auth/jwt"
+	"wrench/app/cross_funcs"
 	"wrench/app/json_map"
 	settings "wrench/app/manifest/action_settings"
 	"wrench/app/manifest/action_settings/func_settings"
@@ -374,7 +375,7 @@ func applyScaling(jsonMap map[string]interface{}, fields []string, division bool
             return fmt.Errorf("field '%s' not found", fieldName)
         }
 
-        numericValue, err := toFloat(fieldName, value)
+        numericValue, err := cross_funcs.ConvertToFloat(value)
         if err != nil {
             return err
         }
@@ -402,23 +403,4 @@ func parseField(field string) (string, float64, error) {
     }
 
     return parts[0], factor, nil
-}
-
-func toFloat(field string, value interface{}) (float64, error) {
-    switch x := value.(type) {
-    case float64:
-        return x, nil
-    case float32:
-        return float64(x), nil
-    case int:
-        return float64(x), nil
-    case int64:
-        return float64(x), nil
-    case json.Number:
-        return x.Float64()
-    case string:
-        return strconv.ParseFloat(strings.TrimSpace(x), 64)
-    default:
-        return 0, fmt.Errorf("field '%s' is not numeric", field)
-    }
 }
