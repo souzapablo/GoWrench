@@ -347,45 +347,47 @@ func ApplyScale(jsonMap map[string]interface{}, cfg *maps.ScaleSettings) (map[st
         return jsonMap, nil
     }
 
-    applyList := func(list []string, op string) error {
-        for _, field := range list {
-            fieldName, factor, err := parseField(field)
-            if err != nil {
-                return err
-            }
-
-            value, jsonMapResult := json_map.GetValue(jsonMap, fieldName, true)
-            if value == nil {
-                return fmt.Errorf("field '%s' not found", fieldName)
-            }
-
-            numericValue, err := toFloat(fieldName, value)
-            if err != nil {
-                return err
-            }
-
-            if op == "up" {
-                numericValue *= factor
-            } else { 
-                if factor == 0 {
-                    return fmt.Errorf("division by zero for '%s'", fieldName)
-                }
-                numericValue /= factor
-            }
-
-            json_map.CreateProperty(jsonMapResult, fieldName, numericValue)
-        }
-        return nil
-    }
-
-    if err := applyList(cfg.Up, "up"); err != nil {
+    if err := applyScaling(jsonMap, cfg.Up, false); err != nil {
         return nil, err
     }
-    if err := applyList(cfg.Down, "down"); err != nil {
+
+    if err := applyScaling(jsonMap, cfg.Down, true); err != nil {
         return nil, err
     }
 
     return jsonMap, nil
+}
+
+func applyScaling(jsonMap map[string]interface{}, fields []string, division bool) error {
+    for _, field := range fields {
+        fieldName, factor, err := parseField(field)
+        if err != nil {
+            return err
+        }
+
+        if division && factor == 0 {
+            return fmt.Errorf("division by zero for '%s'", fieldName)
+        }
+
+        value, jsonMapResult := json_map.GetValue(jsonMap, fieldName, true)
+        if value == nil {
+            return fmt.Errorf("field '%s' not found", fieldName)
+        }
+
+        numericValue, err := toFloat(fieldName, value)
+        if err != nil {
+            return err
+        }
+
+        if division {
+            numericValue /= factor
+        } else {
+            numericValue *= factor
+        }
+
+        json_map.CreateProperty(jsonMapResult, fieldName, numericValue)
+    }
+    return nil
 }
 
 func parseField(field string) (string, float64, error) {
