@@ -105,6 +105,10 @@ func (handler *HttpContractMapHandler) doDefault(wrenchContext *contexts.WrenchC
 		errMsg = "Failed to format values."
 	}
 
+	if handler.ContractMap.Scale != nil {
+		currentBodyContext, err = contexts.ApplyScale(currentBodyContext, handler.ContractMap.Scale)
+	}
+
 	return currentBodyContext, err, errMsg
 }
 
@@ -133,6 +137,8 @@ func (handler *HttpContractMapHandler) doSequency(wrenchContext *contexts.Wrench
 			if err != nil {
 				break
 			}
+		} else if action == "scale" {
+			currentBodyContext, err = contexts.ApplyScale(currentBodyContext, handler.ContractMap.Scale)
 		}
 	}
 

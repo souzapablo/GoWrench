@@ -3,6 +3,8 @@ package contexts
 import (
 	"encoding/json"
 	"fmt"
+	"math"
+	"strconv"
 	"strings"
 	"time"
 	auth_jwt "wrench/app/auth/jwt"
@@ -339,4 +341,79 @@ func FormatValues(jsonMap map[string]interface{}, format *maps.FormatSettings) (
 	}
 
 	return jsonValueCurrent, nil
+}
+
+func ApplyScale(jsonMap map[string]interface{}, cfg *maps.ScaleSettings) (map[string]interface{}, error) {
+
+    applyList := func(list []string, op string) error {
+        for _, field := range list {
+            parts := strings.Split(field, ":")
+            fieldName := parts[0]
+            number, err := strconv.ParseFloat(parts[1], 64)
+            if err != nil {
+                return err
+            }
+
+            value, jsonMapResult := json_map.GetValue(jsonMap, fieldName, true)
+            if value == nil {
+                return fmt.Errorf("field '%s' not found", fieldName)
+            }
+
+            var v float64
+            switch x := value.(type) {
+            case float64:
+                v = x
+            case float32:
+                v = float64(x)
+            case int:
+                v = float64(x)
+            case int64:
+                v = float64(x)
+            case json.Number:
+                v, err = x.Float64()
+                if err != nil {
+                    return fmt.Errorf("field '%s' is not numeric: %v", fieldName, err)
+                }
+            case string:
+                s := strings.TrimSpace(x)
+                v, err = strconv.ParseFloat(s, 64)
+                if err != nil {
+                    return fmt.Errorf("field '%s' is not numeric: %v", fieldName, err)
+                }
+            default:
+                return fmt.Errorf("field '%s' is not numeric", fieldName)
+            }
+
+            switch op {
+            case "up":
+                v *= number
+            case "down":
+                if number == 0 {
+                    return fmt.Errorf("division by zero")
+                }
+                v /= number
+            }
+			
+            var result interface{} = v
+            if math.Trunc(v) == v {
+                result = int64(v)
+            }
+            json_map.CreateProperty(jsonMapResult, fieldName, result)
+        }
+        return nil
+    }
+
+    if cfg == nil {
+        return jsonMap, nil
+    }
+
+    if err := applyList(cfg.Up, "up"); err != nil {
+        return nil, err
+    }
+
+    if err := applyList(cfg.Down, "down"); err != nil {
+        return nil, err
+    }
+
+    return jsonMap, nil
 }

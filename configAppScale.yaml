@@ -1,0 +1,45 @@
+version: 1
+
+service:
+  name: "scale-test"
+  version: 1.0.0
+
+api:
+  endpoints:
+    - route: /api/scale
+      method: post
+      actionId: contract_scale
+
+    - route: /api/mock
+      method: post
+      actionId: mock_mirror
+
+actions:
+  - id: mock_mirror
+    type: httpRequestMock
+    http:
+      mock:
+        mirrorBody: true
+
+  - id: contract_scale
+    type: httpRequest
+    trigger:
+      before:
+        contractMapId: map_scale_test
+    http:
+      request:
+        method: post
+        url: 'http://localhost:{{PORT}}/api/mock'
+
+contract:
+  maps:
+  - id: map_scale_test
+    sequence:
+    - scale
+    scale:
+      up:
+      - "employee.age:2"
+      - "budget:3"
+      down: 
+      - "employee.salary:2"
+      - "expenses:4"
