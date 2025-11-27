@@ -20,6 +20,7 @@ actions:
     http:
       mock:
         mirrorBody: true
+        contentType: "application/json"
 
   - id: contract_math
     type: httpRequest
