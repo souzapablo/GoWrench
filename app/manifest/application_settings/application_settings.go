@@ -2,9 +2,11 @@ package application_settings
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"wrench/app/manifest/action_settings"
 	"wrench/app/manifest/api_settings"
+	"wrench/app/manifest/key_settings"
 	"wrench/app/manifest/rate_limit_settings"
 
 	"wrench/app/manifest/connection_settings"
@@ -28,6 +30,7 @@ type ApplicationSettings struct {
 	TokenCredentials []*credential.TokenCredentialSetting     `yaml:"tokenCredentials"`
 	Idemps           []*idemp_settings.IdempSettings          `yaml:"idemps"`
 	RateLimits       []*rate_limit_settings.RateLimitSettings `yaml:"rateLimits"`
+	Keys             []*key_settings.KeySettings              `yaml:"keys"`
 }
 
 func (settings *ApplicationSettings) GetActionById(actionId string) (*action_settings.ActionSettings, error) {
@@ -37,7 +40,7 @@ func (settings *ApplicationSettings) GetActionById(actionId string) (*action_set
 		}
 	}
 
-	return nil, errors.New("action not found")
+	return nil, fmt.Errorf("action %v not found", actionId)
 }
 
 func (settings *ApplicationSettings) GetEndpointByActionId(actionId string) (*api_settings.EndpointSettings, error) {
@@ -47,7 +50,7 @@ func (settings *ApplicationSettings) GetEndpointByActionId(actionId string) (*ap
 		}
 	}
 
-	return nil, errors.New("endpoint not found")
+	return nil, fmt.Errorf("endpoint %v not found", actionId)
 }
 
 func (settings *ApplicationSettings) Valid() validation.ValidateResult {
@@ -91,6 +94,12 @@ func (settings *ApplicationSettings) Valid() validation.ValidateResult {
 
 	if settings.RateLimits != nil {
 		for _, validable := range settings.RateLimits {
+			result.AppendValidable(validable)
+		}
+	}
+
+	if settings.Keys != nil {
+		for _, validable := range settings.Keys {
 			result.AppendValidable(validable)
 		}
 	}
@@ -164,6 +173,14 @@ func (settings *ApplicationSettings) Merge(toMerge *ApplicationSettings) error {
 			settings.RateLimits = toMerge.RateLimits
 		} else {
 			settings.RateLimits = append(settings.RateLimits, toMerge.RateLimits...)
+		}
+	}
+
+	if len(toMerge.Keys) > 0 {
+		if len(settings.Keys) == 0 {
+			settings.Keys = toMerge.Keys
+		} else {
+			settings.Keys = append(settings.Keys, toMerge.Keys...)
 		}
 	}
 

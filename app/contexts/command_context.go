@@ -123,9 +123,11 @@ func GetCalculatedValue(command string, wrenchContext *WrenchContext, bodyContex
 		} else if IsWrenchContextCommand(command) {
 			return GetValueWrenchContext(command, wrenchContext)
 		} else if IsFunc(command) {
-			return GetFuncValue(func_settings.FuncGeneralType(command), wrenchContext, bodyContext, action)
+			value, _ := GetFuncValue(func_settings.FuncGeneralType(command), wrenchContext, bodyContext, action)
+			return value
 		} else {
-			return command
+			command = fmt.Sprintf("%v%v", prefixBodyContext, command)
+			return GetValueBodyContext(command, bodyContext)
 		}
 	} else {
 		return command
@@ -143,7 +145,7 @@ func GetValueBodyContext(command string, bodyContext *BodyContext) interface{} {
 		bodyPreservedMapSplitted := strings.Split(bodyPreservedMap, ".")
 		actionId := bodyPreservedMapSplitted[0]
 		if len(bodyPreservedMapSplitted) == 1 {
-			bodyPreserved := bodyContext.GetBodyPreserved(actionId)
+			bodyPreserved, _ := bodyContext.GetBodyPreserved(actionId)
 			return string(bodyPreserved)
 		} else {
 			jsonMap := bodyContext.ParseBodyToMapObjectPreserved(actionId)

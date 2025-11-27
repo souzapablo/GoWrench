@@ -12,10 +12,13 @@ import (
 	"wrench/app/manifest/application_settings"
 	"wrench/app/startup"
 	"wrench/app/startup/connections"
+	keys_load "wrench/app/startup/keys"
 	"wrench/app/startup/token_credentials"
 )
 
 func main() {
+
+	app.LoadInstanceID()
 	ctx := context.Background()
 	app.SetContext(ctx)
 
@@ -61,10 +64,8 @@ func main() {
 
 	loadBashFiles()
 
-	connErr := connections.LoadConnections()
-	if connErr != nil {
-		app.LogError2("Error connections: %v", connErr)
-	}
+	connections.LoadConnections(ctx)
+	keys_load.LoadKeys()
 
 	go token_credentials.LoadTokenCredentialAuthentication()
 	hanlder := startup.LoadApplicationSettings(ctx, applicationSetting)

@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -17,12 +16,7 @@ func LogInfo(msg string) {
 	log.Print(msg)
 
 	if Logger != nil {
-		var record otelLog.Record
-		record.SetSeverity(otelLog.SeverityInfo)
-		record.SetBody(otelLog.StringValue(msg))
-		record.SetTimestamp(time.Now())
-
-		Logger.Emit(GetContext(), record)
+		Logger.Emit(GetContext(), getRecord(msg, otelLog.SeverityInfo))
 	}
 }
 
@@ -30,12 +24,7 @@ func LogWarning(msg string) {
 	log.Print(msg)
 
 	if Logger != nil {
-		var record otelLog.Record
-		record.SetSeverity(otelLog.SeverityWarn)
-		record.SetBody(otelLog.StringValue(msg))
-		record.SetTimestamp(time.Now())
-
-		Logger.Emit(GetContext(), record)
+		Logger.Emit(GetContext(), getRecord(msg, otelLog.SeverityWarn))
 	}
 }
 
@@ -43,15 +32,19 @@ func LogError(err WrenchErrorLog) {
 	log.Print(err)
 
 	if Logger != nil {
-		var record otelLog.Record
-		record.SetSeverity(otelLog.SeverityError)
-		record.SetBody(otelLog.StringValue(fmt.Sprint(err)))
-		record.SetTimestamp(time.Now())
-
-		Logger.Emit(GetContext(), record)
+		Logger.Emit(GetContext(), getRecord(err.Message, otelLog.SeverityError))
 	}
 }
 
 func LogError2(msg string, err error) {
 	LogError(WrenchErrorLog{Message: msg, Error: err})
+}
+
+func getRecord(msg string, severity otelLog.Severity) otelLog.Record {
+	var record otelLog.Record
+	record.SetSeverity(severity)
+	record.AddAttributes(otelLog.KeyValue{Key: "instance", Value: otelLog.StringValue(GetInstanceID())})
+	record.SetBody(otelLog.StringValue(msg))
+	record.SetTimestamp(time.Now())
+	return record
 }

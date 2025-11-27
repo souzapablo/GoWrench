@@ -37,37 +37,40 @@ func (handler *KafkaProducerHandler) Do(ctx context.Context, wrenchContext *cont
 			handler.setError("error to get kafka connection id", span, wrenchContext, bodyContext, settings)
 		} else {
 
-			value := bodyContext.GetBody(settings)
-
-			var key []byte
-			var keyValue string
-			if len(settings.Kafka.MessageKey) > 0 {
-				keyValue = fmt.Sprint(contexts.GetCalculatedValue(settings.Kafka.MessageKey, wrenchContext, bodyContext, settings))
-				key = []byte(keyValue)
-			}
-
-			headers := handler.getKafkaMessageHeaders(settings.Kafka.Headers, wrenchContext, bodyContext, settings)
-
-			err := writer.WriteMessages(context.Background(), kafka.Message{
-				Key:     key,
-				Value:   value,
-				Headers: headers,
-			})
-
+			value, err := bodyContext.GetBody(settings)
 			if err != nil {
-				msg := fmt.Sprintf("error when will produce message to the topic %v error %v", writer.Topic, err)
-				handler.setError(msg, span, wrenchContext, bodyContext, settings)
+				handler.setError("error to get body for kafka producer", span, wrenchContext, bodyContext, settings)
 			} else {
+				var key []byte
+				var keyValue string
+				if len(settings.Kafka.MessageKey) > 0 {
+					keyValue = fmt.Sprint(contexts.GetCalculatedValue(settings.Kafka.MessageKey, wrenchContext, bodyContext, settings))
+					key = []byte(keyValue)
+				}
 
-				bodyContext.HttpStatusCode = 200
-				bodyContext.ContentType = "text/plain"
-				bodyContext.SetBodyAction(settings, []byte(""))
+				headers := handler.getKafkaMessageHeaders(settings.Kafka.Headers, wrenchContext, bodyContext, settings)
+
+				err := writer.WriteMessages(context.Background(), kafka.Message{
+					Key:     key,
+					Value:   value,
+					Headers: headers,
+				})
+
+				if err != nil {
+					msg := fmt.Sprintf("error when will produce message to the topic %v error %v", writer.Topic, err)
+					handler.setError(msg, span, wrenchContext, bodyContext, settings)
+				} else {
+
+					bodyContext.HttpStatusCode = 200
+					bodyContext.ContentType = "text/plain"
+					bodyContext.SetBodyAction(settings, []byte(""))
+				}
+
+				handler.setSpanAttributes(span, settings.Kafka.ConnectionId, settings.Kafka.TopicName, keyValue)
+
+				duration := time.Since(start).Seconds() * 1000
+				handler.metricRecord(ctx, duration, settings.Kafka.ConnectionId, settings.Kafka.TopicName)
 			}
-
-			handler.setSpanAttributes(span, settings.Kafka.ConnectionId, settings.Kafka.TopicName, keyValue)
-
-			duration := time.Since(start).Seconds() * 1000
-			handler.metricRecord(ctx, duration, settings.Kafka.ConnectionId, settings.Kafka.TopicName)
 		}
 	}
 
@@ -81,6 +84,7 @@ func (handler *KafkaProducerHandler) metricRecord(ctx context.Context, duration 
 		metric.WithAttributes(
 			attribute.String("gowrench_connections_id", connectionId),
 			attribute.String("kafka_producer_topic_name", topicName),
+			attribute.String("instance", app.GetInstanceID()),
 		),
 	)
 }

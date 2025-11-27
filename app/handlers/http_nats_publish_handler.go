@@ -30,32 +30,34 @@ func (handler *NatsPublishHandler) Do(ctx context.Context, wrenchContext *contex
 		settings := handler.ActionSettings
 
 		natsConn := connections.GetNatsConnectionById(settings.Nats.ConnectionId)
-
-		msg := &nats.Msg{
-			Subject: settings.Nats.SubjectName,
-			Data:    bodyContext.GetBody(settings),
-			//Header:  nats.Header{},    // create mapper to add headers in message
-		}
-
-		var err error
-		if settings.Nats.IsStream {
-			js := connections.GetJetStreamByConnectionId(settings.Nats.ConnectionId)
-			_, err = js.PublishMsg(msg)
-
+		data, err := bodyContext.GetBody(settings)
+		if err != nil {
+			wrenchContext.SetHasError3(span, "error getting body for nats publish", err, 500, bodyContext)
 		} else {
-			err = natsConn.PublishMsg(msg)
-		}
 
-		if settings.ShouldPreserveBody() {
-			bodyContext.SetBodyPreserved(settings.Id, []byte(""))
-		} else {
-			if err != nil {
-				wrenchContext.SetHasError(span, "error nats publish message", err)
-				bodyContext.HttpStatusCode = 500
-				bodyContext.SetBody([]byte(err.Error()))
+			msg := &nats.Msg{
+				Subject: settings.Nats.SubjectName,
+				Data:    data,
+				//Header:  nats.Header{},    // create mapper to add headers in message
+			}
+
+			if settings.Nats.IsStream {
+				js := connections.GetJetStreamByConnectionId(settings.Nats.ConnectionId)
+				_, err = js.PublishMsg(msg)
+
 			} else {
-				bodyContext.HttpStatusCode = 204
-				bodyContext.SetBody([]byte(""))
+				err = natsConn.PublishMsg(msg)
+			}
+
+			if settings.ShouldPreserveBody() {
+				bodyContext.SetBodyPreserved(settings.Id, []byte(""))
+			} else {
+				if err != nil {
+					wrenchContext.SetHasError3(span, "error nats publish message", err, 500, bodyContext)
+				} else {
+					bodyContext.HttpStatusCode = 204
+					bodyContext.SetBody([]byte(""))
+				}
 			}
 		}
 
@@ -73,6 +75,7 @@ func (handler *NatsPublishHandler) metricRecord(ctx context.Context, duration fl
 		metric.WithAttributes(
 			attribute.String("gowrench_connections_id", connectionId),
 			attribute.String("nats_publish_subject_name", subjectName),
+			attribute.String("instance", app.GetInstanceID()),
 		),
 	)
 }

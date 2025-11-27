@@ -5,9 +5,10 @@ import (
 )
 
 type ConnectionSettings struct {
-	Nats  []*NatsConnectionSettings  `yaml:"nats"`
-	Kafka []*KafkaConnectionSettings `yaml:"kafka"`
-	Redis []*RedisConnectionSettings `yaml:"redis"`
+	Nats     []*NatsConnectionSettings   `yaml:"nats"`
+	Kafka    []*KafkaConnectionSettings  `yaml:"kafka"`
+	Redis    []*RedisConnectionSettings  `yaml:"redis"`
+	DynamoDb *DynamoDbConnectionSettings `yaml:"dynamodb"`
 }
 
 func (settings *ConnectionSettings) Valid() validation.ValidateResult {
@@ -29,6 +30,10 @@ func (settings *ConnectionSettings) Valid() validation.ValidateResult {
 		for _, validable := range settings.Redis {
 			result.AppendValidable(validable)
 		}
+	}
+
+	if settings.DynamoDb != nil {
+		result.AppendValidable(settings.DynamoDb)
 	}
 
 	return result
@@ -61,6 +66,17 @@ func (settings *ConnectionSettings) Merge(toMerge *ConnectionSettings) error {
 			settings.Kafka = toMerge.Kafka
 		} else {
 			settings.Kafka = append(settings.Kafka, toMerge.Kafka...)
+		}
+	}
+
+	if toMerge.DynamoDb != nil && len(toMerge.DynamoDb.Tables) > 0 {
+		if settings.DynamoDb == nil {
+			settings.DynamoDb = toMerge.DynamoDb
+		} else {
+
+			if len(toMerge.DynamoDb.Tables) > 0 {
+				settings.DynamoDb.Tables = append(settings.DynamoDb.Tables, toMerge.DynamoDb.Tables...)
+			}
 		}
 	}
 

@@ -151,6 +151,7 @@ func (handler *IdempHandler) metricRecord(ctx context.Context, duration float64,
 	app.IdempDuration.Record(ctx, duration,
 		metric.WithAttributes(
 			attribute.Bool("failed", failed),
+			attribute.String("instance", app.GetInstanceID()),
 		),
 	)
 }

@@ -38,6 +38,13 @@ func endpointSettingsCrossValidation(appSetting *application_settings.Applicatio
 					result.AddError(fmt.Sprintf("api.endpoints[%v] is using roles/scopes/claim which is not allowed for HMAC authorization", endpoint.Route))
 				}
 			}
+
+			if len(endpoint.ActionID) > 0 {
+				_, err := appSetting.GetActionById(endpoint.ActionID)
+				if err != nil {
+					result.AddError(fmt.Sprintf("api.endpoints[%v].actionId error %v", endpoint.Route, err))
+				}
+			}
 		}
 	}
 

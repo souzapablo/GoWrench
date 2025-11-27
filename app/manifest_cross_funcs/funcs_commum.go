@@ -6,6 +6,7 @@ import (
 	"wrench/app/manifest/application_settings"
 	"wrench/app/manifest/connection_settings"
 	"wrench/app/manifest/idemp_settings"
+	"wrench/app/manifest/key_settings"
 	"wrench/app/manifest/rate_limit_settings"
 	"wrench/app/manifest/service_settings"
 	"wrench/app/manifest/token_credential_settings"
@@ -84,4 +85,45 @@ func GetRateLimitSettingById(rateLimitId string) (*rate_limit_settings.RateLimit
 func GetService() *service_settings.ServiceSettings {
 	appSetting := application_settings.ApplicationSettingsStatic
 	return appSetting.Service
+}
+
+var dynamodbTables map[string]*connection_settings.DynamoDbTableSettings
+
+func GetDynamoDbTableSettings(tableId string) (*connection_settings.DynamoDbTableSettings, error) {
+
+	if dynamodbTables == nil {
+		dynamodbTables = make(map[string]*connection_settings.DynamoDbTableSettings)
+		appSetting := application_settings.ApplicationSettingsStatic
+		if appSetting.Connections != nil &&
+			appSetting.Connections.DynamoDb != nil &&
+			len(appSetting.Connections.DynamoDb.Tables) > 0 {
+
+			for _, table := range appSetting.Connections.DynamoDb.Tables {
+				dynamodbTables[table.Id] = table
+			}
+		}
+	}
+
+	var tableResult *connection_settings.DynamoDbTableSettings
+	var err error
+
+	tableResult = dynamodbTables[tableId]
+	if tableResult == nil {
+		err = fmt.Errorf("connections.dynamodb.tables[%v] not found", tableId)
+	}
+
+	return tableResult, err
+}
+
+func GetPrivateKeyById(keyId string) (*key_settings.KeySettings, error) {
+	appSetting := application_settings.ApplicationSettingsStatic
+	if len(appSetting.Keys) > 0 {
+		for _, key := range appSetting.Keys {
+			if key.Id == keyId {
+				return key, nil
+			}
+		}
+
+	}
+	return nil, fmt.Errorf("private key %s not found", keyId)
 }
