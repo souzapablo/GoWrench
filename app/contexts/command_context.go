@@ -343,64 +343,47 @@ func FormatValues(jsonMap map[string]interface{}, format *maps.FormatSettings) (
 	return jsonValueCurrent, nil
 }
 
-func ApplyScale(jsonMap map[string]interface{}, cfg *maps.ScaleSettings) (map[string]interface{}, error) {
-    if cfg == nil {
+func ApplyMathOperations(jsonMap map[string]interface{},  mapSettings *maps.MathSettings) (map[string]interface{}, error) {
+    if mapSettings == nil {
         return jsonMap, nil
     }
 
-    if err := applyScaling(jsonMap, cfg.Up, false); err != nil {
-        return nil, err
-    }
+    for _, expr := range *mapSettings {
 
-    if err := applyScaling(jsonMap, cfg.Down, true); err != nil {
-        return nil, err
-    }
+		operatorIndex := strings.IndexAny(expr, "+-*/")
+
+		operator := expr[operatorIndex : operatorIndex+1]
+    	path := strings.TrimSpace(expr[:operatorIndex])
+    	rawFactor := strings.TrimSpace(expr[operatorIndex+1:])
+
+		factor, _ := strconv.ParseFloat(rawFactor, 64)		
+		rawValue, jsonMapResult := json_map.GetValue(jsonMap, path, true)
+        if rawValue == nil {
+            return nil, fmt.Errorf("field '%s' not found", path)
+        }
+
+        numericValue, err := cross_funcs.ConvertToFloat(rawValue)
+
+		if (err != nil) {
+			return nil, err
+		}
+
+  		var result float64
+        switch operator {
+			case "*":
+				result = numericValue * factor
+			case "/":
+				result = numericValue / factor
+			case "+":
+				result = numericValue + factor
+			case "-":
+				result = numericValue - factor
+			default:
+				return nil, fmt.Errorf("invalid operation in math")
+        }
+
+		json_map.SetValue(jsonMapResult, path, result)
+	}
 
     return jsonMap, nil
-}
-
-func applyScaling(jsonMap map[string]interface{}, fields []string, division bool) error {
-    for _, field := range fields {
-        fieldName, factor, err := parseField(field)
-        if err != nil {
-            return err
-        }
-
-        if division && factor == 0 {
-            return fmt.Errorf("division by zero for '%s'", fieldName)
-        }
-
-        value, jsonMapResult := json_map.GetValue(jsonMap, fieldName, true)
-        if value == nil {
-            return fmt.Errorf("field '%s' not found", fieldName)
-        }
-
-        numericValue, err := cross_funcs.ConvertToFloat(value)
-        if err != nil {
-            return err
-        }
-
-        if division {
-            numericValue /= factor
-        } else {
-            numericValue *= factor
-        }
-
-        json_map.CreateProperty(jsonMapResult, fieldName, numericValue)
-    }
-    return nil
-}
-
-func parseField(field string) (string, float64, error) {
-    parts := strings.Split(field, ":")
-    if len(parts) != 2 {
-        return "", 0, fmt.Errorf("invalid field format '%s'", field)
-    }
-
-    factor, err := strconv.ParseFloat(parts[1], 64)
-    if err != nil {
-        return "", 0, fmt.Errorf("invalid factor in '%s': %v", field, err)
-    }
-
-    return parts[0], factor, nil
 }

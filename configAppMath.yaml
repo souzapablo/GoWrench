@@ -1,14 +1,14 @@
 version: 1
 
 service:
-  name: "scale-test"
+  name: "math-test"
   version: 1.0.0
 
 api:
   endpoints:
-    - route: /api/scale
+    - route: /api/math
       method: post
-      actionId: contract_scale
+      actionId: contract_math
 
     - route: /api/mock
       method: post
@@ -21,11 +21,11 @@ actions:
       mock:
         mirrorBody: true
 
-  - id: contract_scale
+  - id: contract_math
     type: httpRequest
     trigger:
       before:
-        contractMapId: map_scale_test
+        contractMapId: map_math_test
     http:
       request:
         method: post
@@ -33,13 +33,12 @@ actions:
 
 contract:
   maps:
-  - id: map_scale_test
+  - id: map_math_test
     sequence:
-    - scale
-    scale:
-      up:
-      - "employee.age:2"
-      - "budget:3"
-      down: 
-      - "employee.salary:2"
-      - "expenses:4"
+    - math
+    math:
+      - "budget.value+2"
+      - "budget.value-3"
+      - "budget.value*3"
+      - "budget.value/3"
+      - "budget.value*-1"
