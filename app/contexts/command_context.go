@@ -355,13 +355,13 @@ func ApplyMathOperations(jsonMap map[string]interface{},  mapSettings *maps.Math
 		operatorIndex := strings.IndexAny(expr, "+-*/")
 
 		operator := expr[operatorIndex : operatorIndex+1]
-    	path := strings.TrimSpace(expr[:operatorIndex])
+    	fieldName := strings.TrimSpace(expr[:operatorIndex])
     	rawFactor := strings.TrimSpace(expr[operatorIndex+1:])
 
 		factor, _ := strconv.ParseFloat(rawFactor, 64)		
-		rawValue, jsonMapResult := json_map.GetValue(jsonMap, path, true)
+		rawValue, jsonMapResult := json_map.GetValue(jsonMap, fieldName, true)
         if rawValue == nil {
-            return nil, fmt.Errorf("field '%s' not found", path)
+            return nil, fmt.Errorf("field '%s' not found", fieldName)
         }
 
         numericValue, err := cross_funcs.ConvertToFloat(rawValue)
@@ -384,7 +384,7 @@ func ApplyMathOperations(jsonMap map[string]interface{},  mapSettings *maps.Math
 				return nil, fmt.Errorf("invalid operation in math")
         }
 
-		json_map.SetValue(jsonMapResult, path, result)
+		json_map.SetValue(jsonMapResult, fieldName, result)
 	}
 
     return jsonMap, nil
